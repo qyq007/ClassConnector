@@ -246,13 +246,17 @@ ClassConnector/
 │   ├── markdown.js         # 前端 Markdown 渲染
 │   ├── audio.js            # Web Audio 播放 / 麦克风采集
 │   └── app.js              # 主逻辑
-├── scripts/                # 各平台安装与启动脚本
+├── scripts/                # 各平台安装与启动脚本 + package.py 打包脚本
 ├── tests/                  # 单元测试 / 冒烟测试 / 密码流程测试
 ├── docs/
 │   ├── ARCHITECTURE.md     # 架构与数据流
 │   ├── API.md              # REST / WebSocket 协议
-│   └── FAQ.md              # 常见问题
-└── requirements.txt
+│   ├── FAQ.md              # 常见问题
+│   └── DEVELOPMENT.md      # VS Code 开发指南
+├── .vscode/                # 调试配置 / 任务 / 推荐扩展（可直接编辑调试）
+├── requirements.txt        # 运行依赖
+├── requirements-dev.txt    # 开发 / 测试依赖
+└── .editorconfig
 ```
 
 ---
@@ -262,3 +266,17 @@ ClassConnector/
 - [架构设计与数据流](docs/ARCHITECTURE.md)
 - [REST / WebSocket API 参考](docs/API.md)
 - [常见问题排查](docs/FAQ.md)
+- [使用 VS Code 开发](docs/DEVELOPMENT.md)
+
+---
+
+## 十二、VS Code 开发与发行包
+
+仓库内置了完整的 VS Code 配置（`.vscode/`）：推荐扩展、F5 调试采集端、pytest 调试、Chrome 前端调试，以及一键任务（安装依赖 / 启动服务 / 跑测试 / 打包）。**用 VS Code 打开本文件夹 → 安装推荐扩展 → F5** 即可开始改代码，前端 `manager/` 改完刷新浏览器生效，无需构建。详见 [开发指南](docs/DEVELOPMENT.md)。
+
+```bash
+python -m pip install -r requirements-dev.txt   # 开发依赖
+python scripts/package.py                      # 生成 dist/ClassConnector-v1.0.0.zip
+```
+
+发行包为纯源码 zip（含单一顶层目录），解压后用 `scripts/install.bat`（Windows）或 `scripts/install.sh`（Linux/macOS）安装；GitHub Releases 页面也提供打包好的 zip 下载。

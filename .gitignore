@@ -25,8 +25,12 @@ htmlcov/
 !assets/*.wav
 !assets/*.mp3
 
-# 编辑器 / 系统
-.vscode/
+# 编辑器 / 系统（共享的 VS Code 配置入库，个人本地设置忽略）
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
 .idea/
 .DS_Store
 Thumbs.db

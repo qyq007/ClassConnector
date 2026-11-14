@@ -1,0 +1,11 @@
+# 开发 / 测试依赖：在 requirements.txt 基础上追加
+#   python -m pip install -r requirements-dev.txt
+# 若 PyAudio 等可选依赖在编译环境安装失败，可改用下面的「最小开发依赖」：
+#   python -m pip install fastapi uvicorn python-multipart pytest requests websockets pyflakes
+# 程序对可选依赖有完整降级，缺任何一项都不影响启动与单元测试。
+-r requirements.txt
+
+pytest>=7.4.0
+requests>=2.31.0
+websockets>=11.0
+pyflakes>=3.1.0

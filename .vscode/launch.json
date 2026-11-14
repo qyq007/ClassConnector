@@ -1,0 +1,69 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "采集端：调试启动（无托盘 · 8420）",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent",
+      "args": ["--no-tray", "--port", "8420", "--log-level", "DEBUG"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "CLASSCONNECTOR_HOME": "${workspaceFolder}/.classconnector"
+      }
+    },
+    {
+      "name": "采集端：自定义端口",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent",
+      "args": ["--no-tray", "--port", "${input:ccPort}", "--log-level", "DEBUG"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "CLASSCONNECTOR_HOME": "${workspaceFolder}/.classconnector"
+      }
+    },
+    {
+      "name": "安装向导（交互设置密码）",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent.install",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "CLASSCONNECTOR_HOME": "${workspaceFolder}/.classconnector"
+      }
+    },
+    {
+      "name": "pytest：当前文件",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-q", "-s"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "管理端：Chrome 调试（需先启动采集端）",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:8420/",
+      "webRoot": "${workspaceFolder}/manager"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "ccPort",
+      "type": "promptString",
+      "description": "采集端监听端口",
+      "default": "8420"
+    }
+  ]
+}

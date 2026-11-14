@@ -1,0 +1,68 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "① 安装运行依赖",
+      "type": "shell",
+      "command": "python -m pip install -r requirements.txt",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "① 安装开发依赖（含测试工具）",
+      "type": "shell",
+      "command": "python -m pip install -r requirements-dev.txt",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "② 启动采集端（调试 8420）",
+      "type": "shell",
+      "command": "python -m agent --no-tray --port 8420 --log-level DEBUG",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "CLASSCONNECTOR_HOME": "${workspaceFolder}/.classconnector" }
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "③ 单元测试（无需服务）",
+      "type": "shell",
+      "command": "python -m pytest tests/test_units.py -q",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "③ 密码与自启流程测试",
+      "type": "shell",
+      "command": "python tests/password_flow_test.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "③ 端到端冒烟测试（需先启动服务）",
+      "type": "shell",
+      "command": "python -m pytest tests/smoke_test.py -q",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "④ 静态检查 + 前端语法",
+      "type": "shell",
+      "command": "python -m pyflakes agent tests && python -m compileall -q agent",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "⑤ 打包发行 zip",
+      "type": "shell",
+      "command": "python scripts/package.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}
