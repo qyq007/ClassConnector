@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClassConnector · 班级连接器管理端</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">CC</span>
+    <div class="brand-text"><strong>ClassConnector</strong><small>班级连接器 · 管理端</small></div>
+  </div>
+  <div class="top-center">
+    <select id="deviceSelect" title="已保存的设备" hidden></select>
+    <span id="connBadge" class="badge badge-off">● 未连接</span>
+  </div>
+  <div class="top-actions">
+    <button id="btnSwitch" class="btn btn-ghost" hidden>切换设备</button>
+    <button id="btnDisconnect" class="btn btn-ghost" hidden>断开</button>
+    <span class="version" id="versionText"></span>
+  </div>
+</header>
+
+<!-- ===================== 连接面板 ===================== -->
+<section id="connectPanel" class="connect-wrap">
+  <div class="connect-card">
+    <div class="connect-head">
+      <h1>连接到班级设备</h1>
+      <p>输入采集端的 <b>IP 地址 + 端口号</b> 即可连接，需与教室电脑处于同一局域网。</p>
+    </div>
+    <form id="connectForm" autocomplete="off">
+      <div class="field-row">
+        <label class="field grow">
+          <span>设备 IP / 地址</span>
+          <input id="ipInput" type="text" placeholder="192.168.1.50  或  http://192.168.1.50" required>
+        </label>
+        <label class="field port">
+          <span>端口</span>
+          <input id="portInput" type="number" min="1" max="65535" value="8420" required>
+        </label>
+      </div>
+      <label class="field">
+        <span>管理密码 <em>（仅当设备开启登录验证或需要退出设备时填写）</em></span>
+        <input id="pwdInput" type="password" placeholder="可留空" autocomplete="new-password">
+      </label>
+      <button type="submit" class="btn btn-primary btn-block" id="btnConnect">连接设备</button>
+    </form>
+    <div id="connectError" class="inline-error" hidden></div>
+
+    <div class="saved">
+      <div class="saved-head"><span>最近连接的设备</span><button id="btnClearDevices" class="link-btn">清空</button></div>
+      <div id="savedDevices" class="saved-list"></div>
+    </div>
+
+    <div class="tips">
+      <b>提示</b>
+      <p>也可以直接在教室电脑或任意浏览器打开 <code>http://设备IP:8420</code>，页面会自动连接本机采集端。</p>
+      <p>本管理端可以单独部署在教师机 / 静态服务器上，一次保存多台教室设备并随时切换。</p>
+    </div>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature"><span class="fi">📷</span><b>实时画面</b><small>画质可调 · 可听声音</small></div>
+    <div class="feature"><span class="fi">🎙️</span><b>麦克风对讲</b><small>对讲时自动关闭监听</small></div>
+    <div class="feature"><span class="fi">📢</span><b>横幅通知</b><small>Markdown · 签收 · 语音播报</small></div>
+    <div class="feature"><span class="fi">🖥️</span><b>屏幕截图</b><small>一键抓取教室屏幕</small></div>
+  </div>
+</section>
+
+<!-- ===================== 工作区 ===================== -->
+<main id="workspace" hidden>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="monitor">📷 实时监控</button>
+    <button class="tab" data-tab="banner">📢 横幅通知</button>
+    <button class="tab" data-tab="screen">🖥️ 屏幕截图</button>
+    <button class="tab" data-tab="settings">⚙️ 设备设置</button>
+  </nav>
+
+  <!-- ---------- 实时监控 ---------- -->
+  <section class="tab-panel active" id="tab-monitor">
+    <div class="monitor-layout">
+      <div class="card video-card">
+        <div class="card-head">
+          <h2>教室实时画面</h2>
+          <div class="head-actions">
+            <span id="videoTag" class="badge badge-off">未开启</span>
+            <button id="btnReloadStream" class="btn btn-mini">重载画面</button>
+            <button id="btnFullscreen" class="btn btn-mini">全屏</button>
+          </div>
+        </div>
+        <div class="video-stage" id="videoStage">
+          <img id="video" alt="教室摄像头画面">
+          <div class="video-placeholder" id="videoPlaceholder">点击「开启画面」连接摄像头</div>
+          <div class="video-overlay" id="videoOverlay" hidden></div>
+        </div>
+        <div class="video-toolbar">
+          <button id="btnStartVideo" class="btn btn-primary">开启画面</button>
+          <button id="btnStopVideo" class="btn btn-ghost" hidden>停止画面</button>
+          <button id="btnSnapshot" class="btn btn-ghost">抓拍一帧</button>
+          <span class="sep"></span>
+          <button id="btnListen" class="btn btn-ghost">🔊 开启监听</button>
+          <input id="volumeSlider" type="range" min="0" max="100" value="80" title="监听音量" class="slider small">
+          <span class="sep"></span>
+          <button id="btnTalk" class="btn btn-talk">🎙️ 开始对讲</button>
+          <small class="hint-inline">对讲时自动关闭教室音频监听（空格键可按住说话）</small>
+        </div>
+      </div>
+
+      <aside class="side-col">
+        <div class="card">
+          <div class="card-head"><h2>画质设置</h2><span class="muted">即时生效</span></div>
+          <label class="field compact"><span>JPEG 画质 <b id="qualityVal">70</b></span>
+            <input id="qualitySlider" type="range" min="10" max="100" value="70" class="slider"></label>
+          <div class="field-row">
+            <label class="field compact"><span>分辨率</span>
+              <select id="resolutionSelect">
+                <option value="640x480">640 × 480</option>
+                <option value="1280x720" selected>1280 × 720</option>
+                <option value="1920x1080">1920 × 1080</option>
+                <option value="320x240">320 × 240（省带宽）</option>
+              </select></label>
+            <label class="field compact"><span>帧率</span>
+              <select id="fpsSelect">
+                <option value="5">5 fps</option><option value="10">10 fps</option>
+                <option value="15" selected>15 fps</option><option value="20">20 fps</option>
+                <option value="25">25 fps</option><option value="30">30 fps</option>
+              </select></label>
+          </div>
+          <label class="field compact"><span>摄像头设备</span><select id="cameraDeviceSelect"></select></label>
+          <button id="btnApplyQuality" class="btn btn-primary btn-block">应用画质设置</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>设备状态</h2><button id="btnRefreshStatus" class="btn btn-mini">刷新</button></div>
+          <div id="statusGrid" class="status-grid"></div>
+        </div>
+
+        <div class="card log-card">
+          <div class="card-head"><h2>运行日志</h2></div>
+          <div id="logList" class="log-list"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ---------- 横幅通知 ---------- -->
+  <section class="tab-panel" id="tab-banner">
+    <div class="banner-layout">
+      <div class="card">
+        <div class="card-head"><h2>编写通知</h2><span class="muted">支持 Markdown 长文本</span></div>
+        <label class="field"><span>通知标题</span>
+          <input id="bannerTitle" type="text" placeholder="例如：下午临时集合通知" value="班级通知"></label>
+        <label class="field grow"><span>正文（Markdown）</span>
+          <textarea id="bannerText" rows="12" placeholder="支持 # 标题、**加粗**、列表、表格、代码块、链接等"># 请全体同学注意
+
+**请各班班长** 于 *14:30* 前到教务处领取材料。
+
+> 带好学生证，往返途中注意安全。
+
+1. 各班按顺序领取
+2. 领取后当场核对数量
+3. [ ] 完成后向班主任汇报
+
+| 班级 | 份数 |
+| --- | --- |
+| 一班 | 45 |
+| 二班 | 43 |
+</textarea></label>
+
+        <div class="option-grid">
+          <label class="check"><input id="optUrgent" type="checkbox"><span>🚨 <b>紧急事件</b><small>红色横幅 + 播放独立警报音</small></span></label>
+          <label class="check"><input id="optAck" type="checkbox" checked><span>✅ <b>需要签收</b><small>显示签收按钮并回传状态</small></span></label>
+          <label class="check"><input id="optTts" type="checkbox" checked><span>🔈 <b>语音播报</b><small>用 Edge TTS 朗读横幅内容</small></span></label>
+          <label class="field compact"><span>播报语音</span><select id="voiceSelect"></select></label>
+          <label class="field compact"><span>自动关闭（秒，0 = 手动）</span>
+            <input id="durationInput" type="number" min="0" max="3600" value="0"></label>
+        </div>
+
+        <div class="button-row">
+          <button id="btnSendBanner" class="btn btn-primary">📢 发送横幅通知</button>
+          <button id="btnPreviewBanner" class="btn btn-ghost">网页预览</button>
+          <button id="btnTestTts" class="btn btn-ghost">🔈 测试播报</button>
+          <button id="btnDismissBanner" class="btn btn-danger-ghost">关闭当前横幅</button>
+        </div>
+      </div>
+
+      <div class="banner-right">
+        <div class="card">
+          <div class="card-head"><h2>实时预览</h2><span class="muted">渲染效果</span></div>
+          <div id="mdPreview" class="md-body preview-box"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>通知历史与签收</h2><button id="btnRefreshHistory" class="btn btn-mini">刷新</button></div>
+          <div id="bannerHistory" class="history-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- 屏幕截图 ---------- -->
+  <section class="tab-panel" id="tab-screen">
+    <div class="card">
+      <div class="card-head"><h2>教室屏幕截图</h2><span id="screenMeta" class="muted"></span></div>
+      <div class="button-row">
+        <label class="field compact inline"><span>显示器</span><select id="displaySelect"></select></label>
+        <label class="field compact inline"><span>缩放</span><select id="scaleSelect">
+          <option value="1">100%</option><option value="0.75">75%</option>
+          <option value="0.5">50%</option><option value="0.35">35%</option></select></label>
+        <button id="btnShot" class="btn btn-primary">🖥️ 立即截图</button>
+        <button id="btnDownloadShot" class="btn btn-ghost" disabled>下载图片</button>
+        <label class="check inline"><input id="autoShot" type="checkbox"><span>自动刷新</span></label>
+        <select id="autoShotInterval" class="inline-select"><option value="5000">5 秒</option><option value="10000" selected>10 秒</option><option value="30000">30 秒</option></select>
+      </div>
+      <div id="shotFallback" class="inline-warning" hidden></div>
+      <div class="shot-stage"><img id="shotImage" alt="教室屏幕截图"><div id="shotPlaceholder" class="video-placeholder">尚未截图</div></div>
+    </div>
+  </section>
+
+  <!-- ---------- 设备设置 ---------- -->
+  <section class="tab-panel" id="tab-settings">
+    <div class="settings-layout">
+      <div class="card">
+        <div class="card-head"><h2>基础设置</h2></div>
+        <label class="field"><span>班级 / 教室名称</span><input id="setRoom" type="text"></label>
+        <label class="field"><span>设备名称（留空则使用主机名）</span><input id="setDeviceName" type="text"></label>
+        <label class="field"><span>空闲休眠（秒，0 = 不休眠）</span><input id="setIdle" type="number" min="0" max="3600"></label>
+        <label class="field"><span>默认播报语音</span><select id="setVoice"></select></label>
+        <label class="check"><input id="setTtsEnabled" type="checkbox"><span>启用 Edge TTS 语音播报</span></label>
+        <label class="check"><input id="setUrgentAlert" type="checkbox"><span>紧急事件播放独立警报音</span></label>
+        <label class="check"><input id="setAudioEnabled" type="checkbox"><span>启用教室麦克风 / 扬声器</span></label>
+        <button id="btnSaveSettings" class="btn btn-primary btn-block">保存设置</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>安全</h2></div>
+        <p class="muted small">开启「需要管理密码登录」后，所有管理操作都必须先用安装密码登录。</p>
+        <label class="check"><input id="setRequireAuth" type="checkbox"><span><b>需要管理密码登录</b><small>开启/关闭时需输入安装密码</small></span></label>
+        <label class="field"><span>安装密码（用于修改此开关）</span><input id="authPwd" type="password" placeholder="安装时设置的密码"></label>
+
+        <hr>
+        <h3>修改安装密码</h3>
+        <label class="field"><span>当前密码</span><input id="oldPwd" type="password"></label>
+        <label class="field"><span>新密码（至少 4 位）</span><input id="newPwd" type="password"></label>
+        <button id="btnChangePwd" class="btn btn-ghost">修改密码</button>
+
+        <hr>
+        <h3>退出 / 重启采集端</h3>
+        <p class="muted small">退出需要安装时设置的密码，防止被随意关闭。</p>
+        <label class="field"><span>安装密码</span><input id="stopPwd" type="password" placeholder="退出密码"></label>
+        <div class="button-row">
+          <button id="btnRestartAgent" class="btn btn-ghost">重启采集端</button>
+          <button id="btnStopAgent" class="btn btn-danger">退出采集端</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>设备信息</h2></div>
+        <div id="deviceInfo" class="status-grid"></div>
+        <hr>
+        <h3>能力检测</h3>
+        <div id="capabilityList" class="cap-list"></div>
+        <p class="muted small">缺失的可选依赖会在对应功能上自动降级，状态如上所示。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===================== 网页横幅预览 ===================== -->
+<div id="bannerOverlay" class="banner-overlay" hidden>
+  <div class="banner-box" id="bannerBox">
+    <div class="banner-top"><span id="bannerRoom"></span><span id="bannerClock"></span></div>
+    <div class="banner-badge" id="bannerBadge">班级通知</div>
+    <h1 id="bannerHeading"></h1>
+    <div class="banner-content md-body" id="bannerContent"></div>
+    <div class="banner-bottom">
+      <span id="bannerCountdown"></span>
+      <div>
+        <button id="bannerAckBtn" class="btn btn-ack">我已知悉，点击签收</button>
+        <button id="bannerCloseBtn" class="btn btn-ghost">关闭预览</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="./markdown.js"></script>
+<script src="./audio.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

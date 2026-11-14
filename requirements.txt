@@ -1,0 +1,32 @@
+# ClassConnector 采集端依赖
+#
+# 核心依赖（必须）：提供 HTTP / WebSocket 服务
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+
+# ---- 以下均为「可选依赖」----
+# 任意一项缺失时，对应功能会自动降级并给出状态提示，程序仍可正常启动。
+# 摄像头采集与 JPEG 编码；缺失时使用内置测试画面
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# 屏幕截图（mss 支持多显示器，优先；Pillow 作为 Windows 备选）
+mss>=9.0.0
+Pillow>=10.0.0
+
+# 麦克风监听与对讲播放
+PyAudio>=0.2.13
+
+# 横幅内容语音播报（需要联网访问微软 Edge TTS 服务）
+edge-tts>=6.1.0
+
+# 系统托盘图标（可选）
+pystray>=0.19.0
+
+# 音频播放后端（推荐）：自带解码器，可播放 Edge TTS 生成的 mp3 与紧急警报 wav。
+# Windows 教室电脑通常没有 ffmpeg，pygame 有预编译 wheel，安装最省事。
+pygame>=2.5.0
+
+# 也可以改用 ffmpeg 的 ffplay 播放（无需上面的 pygame）
+# 安装 ffmpeg 后程序会自动优先使用 ffplay：https://ffmpeg.org
