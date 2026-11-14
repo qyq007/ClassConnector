@@ -152,7 +152,10 @@ class TTSHub:
             return None
         import asyncio
 
-        fd, path = tempfile.mkstemp(suffix=".mp3", prefix="cc-tts-")
+        # 绿色便携模式：临时音频也落在数据目录内，不写系统临时目录
+        tmp_dir = app_dir() / "tmp"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        fd, path = tempfile.mkstemp(suffix=".mp3", prefix="cc-tts-", dir=str(tmp_dir))
         os.close(fd)
         try:
             async def _work() -> None:

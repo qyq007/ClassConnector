@@ -4,6 +4,14 @@
 
 > 设计目标：**不依赖云服务器、不依赖公网**。所有能力都跑在局域网内，一个 Python 进程 + 一个浏览器页面即可工作。
 
+> **v1.1.0 重要更新**
+> - 修复 Windows 双击 `.bat` 的中文乱码报错（`echo`→`cho`、`cd /d` 被吞、`No module named 'agent'`）：全部批处理改为**纯 ASCII + CRLF**，去掉 `chcp 65001`。
+> - 新增**绿色便携版**：不安装、不写注册表 / 自启 / 系统 Python，解压双击即用，数据只在解压目录 `data/`，删文件夹即卸载。
+> - 最低 Python 版本降为 **3.8**（补齐 `asyncio.to_thread` 兼容）。
+> - 新增 **Visual Studio 解决方案 `ClassConnector.sln`**，双击即可用 VS 打开、F5 调试。
+>
+> 请从 [Releases](https://github.com/ssq0324/ClassConnector/releases) 下载 **`ClassConnector-v1.1.0.zip`**；v1.0.0 的 Windows 批处理有编码问题，请勿使用。
+
 ---
 
 ## 一、需求对照
@@ -59,9 +67,24 @@ graph LR
 
 ## 三、快速开始
 
-### 1. 教室电脑安装采集端
+### 0. 绿色便携版（推荐先试：不安装、不改电脑设置）
 
-要求 **Python 3.9+**（Windows / Linux / macOS 均可）。
+要求 **Python 3.8+**（Windows / Linux / macOS 均可）。解压 zip 后：
+
+| 系统 | 启动 |
+| --- | --- |
+| Windows | 双击 `scripts/start-portable.bat` |
+| Linux / macOS | `bash scripts/start-portable.sh` |
+
+首次运行会在**解压目录内**创建 `runtime/venv` 并安装核心依赖（不写系统 Python），随后自动启动服务并打开浏览器。配置、日志、横幅、语音缓存只写入 `data/`；**不写注册表、不注册自启、不建系统服务或托盘**。退出按 `Ctrl+C`，卸载直接删除整个文件夹。
+
+- 退出密码（可选）：双击 `scripts/set-password.bat`
+- 完整功能依赖：`runtime\venv\Scripts\python.exe -m pip install -r requirements.txt`
+- 详见 [绿色版说明](docs/PORTABLE.md) 与解压目录里的 `PORTABLE.txt`
+
+### 1. 教室电脑安装采集端（需要开机自启时）
+
+要求 **Python 3.8+**（Windows / Linux / macOS 均可）。
 
 | 系统 | 安装 |
 | --- | --- |
@@ -239,23 +262,31 @@ ClassConnector/
 │   ├── platform_util.py    # 跨平台自启 / 后台运行
 │   ├── tray.py             # 可选系统托盘
 │   ├── install.py          # 安装 / 卸载
-│   └── control.py          # 本地控制命令
+│   ├── control.py          # 本地控制命令
+│   ├── portable.py         # 绿色便携模式入口（数据隔离到 data/）
+│   └── compat.py           # Python 3.8 兼容层
 ├── manager/                # 管理端 Web SPA（零构建、纯静态）
 │   ├── index.html
 │   ├── style.css
 │   ├── markdown.js         # 前端 Markdown 渲染
 │   ├── audio.js            # Web Audio 播放 / 麦克风采集
 │   └── app.js              # 主逻辑
-├── scripts/                # 各平台安装与启动脚本 + package.py 打包脚本
+├── scripts/                # 安装 / 绿色启动 / 设密码 / package.py / gen_vs_project.py
 ├── tests/                  # 单元测试 / 冒烟测试 / 密码流程测试
 ├── docs/
 │   ├── ARCHITECTURE.md     # 架构与数据流
 │   ├── API.md              # REST / WebSocket 协议
 │   ├── FAQ.md              # 常见问题
-│   └── DEVELOPMENT.md      # VS Code 开发指南
-├── .vscode/                # 调试配置 / 任务 / 推荐扩展（可直接编辑调试）
+│   ├── PORTABLE.md         # 绿色便携版说明
+│   ├── DEVELOPMENT.md      # VS Code 开发指南
+│   └── VISUAL_STUDIO.md    # Visual Studio 解决方案使用说明
+├── .vscode/                # VS Code 调试配置 / 任务 / 推荐扩展
+├── ClassConnector.sln      # Visual Studio 解决方案（双击打开）
+├── ClassConnector.pyproj   # VS Python 项目（F5 调试绿色入口）
+├── PORTABLE.txt            # 解压后先看这个
 ├── requirements.txt        # 运行依赖
 ├── requirements-dev.txt    # 开发 / 测试依赖
+├── requirements-portable.txt  # 绿色版核心依赖
 └── .editorconfig
 ```
 
@@ -263,20 +294,31 @@ ClassConnector/
 
 ## 十一、相关文档
 
+- [绿色便携版说明（不安装）](docs/PORTABLE.md)
 - [架构设计与数据流](docs/ARCHITECTURE.md)
 - [REST / WebSocket API 参考](docs/API.md)
 - [常见问题排查](docs/FAQ.md)
+- [使用 Visual Studio 开发（.sln）](docs/VISUAL_STUDIO.md)
 - [使用 VS Code 开发](docs/DEVELOPMENT.md)
 
 ---
 
-## 十二、VS Code 开发与发行包
+## 十二、开发与发行包
 
-仓库内置了完整的 VS Code 配置（`.vscode/`）：推荐扩展、F5 调试采集端、pytest 调试、Chrome 前端调试，以及一键任务（安装依赖 / 启动服务 / 跑测试 / 打包）。**用 VS Code 打开本文件夹 → 安装推荐扩展 → F5** 即可开始改代码，前端 `manager/` 改完刷新浏览器生效，无需构建。详见 [开发指南](docs/DEVELOPMENT.md)。
+### Visual Studio（.sln）
+
+双击根目录 **`ClassConnector.sln`**（VS 2019/2022 +「Python 开发」工作负载）即可打开整个项目；`.pyproj` 已把 `agent\portable.py` 设为启动文件，**F5 直接以绿色便携模式调试**。新增源码文件后运行 `python scripts/gen_vs_project.py` 刷新项目树。详见 [VISUAL_STUDIO.md](docs/VISUAL_STUDIO.md)。
+
+### VS Code（.vscode/）
+
+仓库内置推荐扩展、F5 调试采集端、pytest 调试、Chrome 前端调试与一键任务。**用 VS Code 打开本文件夹 → 安装推荐扩展 → F5** 即可开始改代码；前端 `manager/` 改完刷新浏览器生效，无需构建。详见 [DEVELOPMENT.md](docs/DEVELOPMENT.md)。
+
+### 打包发行
 
 ```bash
 python -m pip install -r requirements-dev.txt   # 开发依赖
-python scripts/package.py                      # 生成 dist/ClassConnector-v1.0.0.zip
+python scripts/gen_vs_project.py                # 刷新 .sln / .pyproj
+python scripts/package.py                      # 生成 dist/ClassConnector-v<版本>.zip
 ```
 
-发行包为纯源码 zip（含单一顶层目录），解压后用 `scripts/install.bat`（Windows）或 `scripts/install.sh`（Linux/macOS）安装；GitHub Releases 页面也提供打包好的 zip 下载。
+发行包为纯源码 zip（单一顶层目录），解压后**推荐双击 `scripts/start-portable.bat` 绿色运行**；需要开机自启时才用 `scripts/install.bat`。GitHub Releases 页面也提供打包好的 zip 下载。

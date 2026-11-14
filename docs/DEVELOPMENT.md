@@ -12,7 +12,7 @@ code .
 
 首次打开时 VS Code 会提示安装推荐扩展（`.vscode/extensions.json`）：Python、Pylance、debugpy、Black Formatter、EditorConfig、Live Server。点「安装全部」即可。
 
-> 使用 Visual Studio（而非 VS Code）也可以：用「文件 → 打开 → 文件夹」打开本目录，Python 工作负载能直接识别 `agent/` 包；调试配置请手动指向模块 `agent`。
+> 使用 **Visual Studio**（而非 VS Code）：直接双击根目录的 `ClassConnector.sln`（需「Python 开发」工作负载），F5 即以绿色便携模式调试，详见 [VISUAL_STUDIO.md](VISUAL_STUDIO.md)。没有该工作负载时也可用「文件 → 打开 → 文件夹」把本目录作为文件夹工作区编辑。
 
 ## 2. 准备解释器
 
@@ -80,11 +80,12 @@ python -m pip install fastapi uvicorn python-multipart pytest requests websocket
 ## 6. 打包发行包
 
 ```bash
-python scripts/package.py                       # 默认 dist/ClassConnector-v1.0.0.zip
+python scripts/package.py                       # 默认 dist/ClassConnector-v<版本>.zip
 python scripts/package.py --output /tmp/cc.zip   # 自定义输出路径
+python scripts/gen_vs_project.py                # 新增文件后刷新 .sln / .pyproj
 ```
 
-脚本按白名单收集 `agent/ manager/ scripts/ docs/ tests/ .vscode/` 与顶层说明文件，自动排除 `.git`、`__pycache__`、`*.pyc`、`.pytest_cache`、运行时配置、日志与音频缓存。zip 内含单一顶层目录 `ClassConnector-v1.0.0/`，并附 `VERSION.txt` 与 `README-先看.txt`，同时打印文件数与 SHA256 便于发布校验。
+脚本按白名单收集 `agent/ manager/ scripts/ docs/ tests/ .vscode/` 与顶层说明文件，自动排除 `.git`、`__pycache__`、`*.pyc`、`.pytest_cache`、`data/`、`runtime/`、日志与音频缓存。zip 内含单一顶层目录 `ClassConnector-v<版本>/`，并附 `VERSION.txt`、`README-FIRST.txt` 与 `PORTABLE.txt`，同时打印文件数与 SHA256 便于发布校验。**所有 `.bat` / `.sln` / `.pyproj` 在打包时强制转为 CRLF**，请勿把它们改成 LF 或加入中文（cmd 会解析错乱）。
 
 版本号取自 `agent/__init__.py` 的 `__version__`，升级版本只需改这一处。
 

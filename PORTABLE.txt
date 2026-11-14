@@ -1,0 +1,38 @@
+ClassConnector 绿色便携版 — 先看这里
+========================================
+
+【最快捷的使用方式：不用安装，不改电脑任何设置】
+
+1. 解压本 zip，得到 ClassConnector-v1.1.0/ 文件夹。
+2. 双击 scripts\start-portable.bat
+   （Linux / macOS 执行 bash scripts/start-portable.sh）
+3. 首次运行会在本文件夹内创建 runtime\venv 并安装核心依赖，
+   之后自动启动服务并打开浏览器，显示 http://127.0.0.1:8420/
+4. 同一局域网的其它电脑，用浏览器打开提示的「局域网」地址即可管理。
+
+【它不会做什么】
+  × 不写注册表、不注册开机自启、不建系统服务、不创建托盘
+  × 不往用户目录、系统 Python 的 site-packages 写任何东西
+  × 不需要管理员权限
+  所有数据（配置、日志、横幅、语音缓存）都只写在本文件夹的 data\ 里。
+
+【退出 / 卸载】
+  退出：在黑色窗口按 Ctrl+C，或直接关掉窗口。
+  卸载：直接删除整个 ClassConnector 文件夹即可，不留残留。
+
+【可选设置】
+  退出密码：双击 scripts\set-password.bat（密码只存在 data\config.json）
+  完整功能：把摄像头 / 音频 / TTS 等依赖也装进目录内的虚拟环境：
+      runtime\venv\Scripts\python.exe -m pip install -r requirements.txt
+  端口：    双击启动脚本时带参数，或编辑 data\config.json 里的 port
+
+【用 Visual Studio 编辑】
+  双击 ClassConnector.sln（需 VS 2019/2022 +「Python 开发」工作负载），
+  按 F5 直接以绿色便携模式调试。详见 docs\VISUAL_STUDIO.md。
+
+【常见问题】
+  提示找不到 Python：安装 Python 3.8+ 并勾选「Add Python to PATH」。
+  浏览器打不开管理端：确认 8420 端口未被占用，防火墙允许局域网访问。
+  麦克风对讲不可用：浏览器要求 HTTPS 或 localhost，详见 docs\FAQ.md。
+
+完整说明：README.md ｜ 绿色版：docs\PORTABLE.md ｜ 开发：docs\DEVELOPMENT.md

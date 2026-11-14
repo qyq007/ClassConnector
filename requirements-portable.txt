@@ -1,0 +1,12 @@
+# 绿色便携版核心依赖：由 start-portable.bat / .sh 首次运行时
+# 自动安装到解压目录内的 runtime/venv，不写入系统 Python。
+# 仅包含「能启动 + 能看测试画面 + 能截图 + 能发横幅」的最小集合，
+# 缺任何可选依赖都会自动降级，不会阻断启动。
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+Pillow>=10.0.0
+
+# 需要完整功能时（仍装到目录内 venv，不污染系统），执行：
+#   Windows : runtime\venv\Scripts\python.exe -m pip install -r requirements.txt
+#   Linux   : runtime/venv/bin/python -m pip install -r requirements.txt

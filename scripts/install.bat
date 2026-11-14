@@ -1,25 +1,25 @@
 @echo off
-chcp 65001 >nul
-title ClassConnector 采集端安装
-cd /d "%~dp0.."
-
-echo ============================================================
-echo   ClassConnector 班级连接器 · 采集端安装
-echo ============================================================
-echo.
-
+setlocal
+rem ClassConnector INSTALLER (registers autostart + writes user profile).
+rem For a no-install / portable run use scripts\start-portable.bat instead.
+rem ASCII only + CRLF: cmd.exe parses .bat by bytes.
+cd /d "%~dp0.." || goto :fail
 where python >nul 2>nul
-if errorlevel 1 (
-    echo [错误] 未找到 python，请先安装 Python 3.9+ 并勾选 Add to PATH
-    pause
-    exit /b 1
-)
-
-echo [1/2] 安装依赖（可选依赖失败不影响核心功能）...
+if errorlevel 1 goto :nopython
+echo [1/2] Installing Python dependencies ...
 python -m pip install -r requirements.txt
-echo.
-
-echo [2/2] 配置采集端...
+echo [2/2] Running install wizard ...
 python -m agent.install %*
 echo.
 pause
+exit /b 0
+
+:nopython
+echo [ERROR] Python 3.8+ not found in PATH.
+pause
+exit /b 1
+
+:fail
+echo [ERROR] Cannot enter the project folder.
+pause
+exit /b 1

@@ -144,3 +144,30 @@ python -m agent.install                # 重新安装并设置新密码
 **Q：为什么开放了 CORS `*`？**
 
 为了让部署在教师机 / 静态服务器上的管理端能跨源连接多台设备。这是局域网内部工具的取舍，若需更严格，可在 `agent/server.py` 的 `CORSMiddleware` 中把 `allow_origins` 改成管理端的具体地址。
+
+---
+
+## 绿色便携版与 Windows 批处理
+
+**Q：双击 `.bat` 出现 `'cho' 不是内部或外部命令`、`'orlevel' ...`、`No module named 'agent'`，怎么回事？**
+
+这是 **v1.0.0 的已知问题**：`.bat` 使用了 UTF-8 中文 + LF 换行 + `chcp 65001`，中文 Windows 的 `cmd.exe` 按字节解析时会把命令拆碎（`echo`→`cho`、`errorlevel`→`orlevel`），`cd /d` 被吞掉导致工作目录没切换，进而找不到 `agent` 包。**v1.1.0 已修复**：全部 `.bat` 改为纯 ASCII + CRLF 并去掉 `chcp 65001`。
+
+- 请下载 **`ClassConnector-v1.1.0.zip`**，不要继续用 v1.0.0。
+- 若你要自己改 `.bat`：**不要写中文、不要改成 LF 换行、不要加 BOM**；中文说明放在 `.txt` / `.md` 里。
+
+**Q：不想安装到电脑里，能直接运行吗？**
+
+能，用绿色便携版：双击 `scripts/start-portable.bat`（Linux/macOS 用 `bash scripts/start-portable.sh`）。它不写注册表、不注册自启、不建服务或托盘，依赖装到解压目录内 `runtime/venv`，所有数据只写 `data/`；退出按 Ctrl+C，卸载直接删除文件夹。详见 [PORTABLE.md](PORTABLE.md)。
+
+**Q：绿色版日志在哪？**
+
+解压目录下的 `data/agent.log`（不再是用户目录的 `%APPDATA%\ClassConnector\`）。
+
+**Q：我是 Python 3.8，能跑吗？**
+
+能。v1.1.0 起最低支持 3.8，`agent/compat.py` 为 `asyncio.to_thread` 提供了 3.8 降级实现。注意部分可选依赖（如 PyAudio）在 3.8 上可能没有预编译 wheel，缺失时对应功能自动降级，不影响启动。
+
+**Q：Visual Studio 能打开吗？**
+
+双击根目录 `ClassConnector.sln`（VS 2019/2022 +「Python 开发」工作负载），F5 即调试。详见 [VISUAL_STUDIO.md](VISUAL_STUDIO.md)。用 VS Code 则打开 `.vscode/` 配置，见 [DEVELOPMENT.md](DEVELOPMENT.md)。

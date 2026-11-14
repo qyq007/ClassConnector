@@ -3,7 +3,7 @@
 
 用法：
     python scripts/package.py
-    python scripts/package.py --output /workspace/ClassConnector-v1.0.0.zip
+    python scripts/package.py --output /workspace/ClassConnector-v1.1.0.zip
     python scripts/package.py --top-dir ClassConnector
 
 版本号取自 agent/__init__.py 的 __version__。
@@ -26,8 +26,12 @@ ROOT = Path(__file__).resolve().parent.parent
 INCLUDE_DIRS = ("agent", "manager", "scripts", "docs", "tests", ".vscode")
 INCLUDE_FILES = (
     "README.md",
+    "PORTABLE.txt",
     "requirements.txt",
     "requirements-dev.txt",
+    "requirements-portable.txt",
+    "ClassConnector.sln",
+    "ClassConnector.pyproj",
     ".gitignore",
     ".editorconfig",
 )
@@ -35,8 +39,11 @@ INCLUDE_FILES = (
 # 目录名黑名单（出现在路径任意一层即排除）
 EXCLUDE_DIRS = {
     "__pycache__", ".pytest_cache", ".git", ".classconnector",
-    "dist", "build", "venv", ".venv", "env", "node_modules",
+    "data", "runtime", "dist", "build", "venv", ".venv", "env", "node_modules",
 }
+
+# cmd.exe / Visual Studio 要求 CRLF；打包时强制转换，避免编辑器改动换行后出错
+CRLF_SUFFIXES = {".bat", ".cmd", ".sln", ".pyproj"}
 # 扩展名黑名单
 EXCLUDE_SUFFIXES = {".pyc", ".pyo", ".log", ".wav", ".mp3", ".zip", ".pid", ".egg-info"}
 # 允许保留的点文件（位于顶层）
@@ -84,6 +91,17 @@ def collect() -> list[Path]:
     return sorted(set(files), key=lambda p: str(p.relative_to(ROOT)))
 
 
+def payload(path: Path) -> bytes:
+    """读取文件字节，必要时强制转成 CRLF 并去掉 BOM。"""
+    data = path.read_bytes()
+    if data.startswith(b"\xef\xbb\xbf"):
+        data = data[3:]
+    if path.suffix.lower() in CRLF_SUFFIXES:
+        text = data.decode("utf-8").replace("\r\n", "\n").replace("\n", "\r\n")
+        data = text.encode("utf-8")
+    return data
+
+
 def zip_info(path: Path, arcname: str) -> zipfile.ZipInfo:
     info = zipfile.ZipInfo(arcname)
     mtime = datetime.fromtimestamp(path.stat().st_mtime)
@@ -96,12 +114,15 @@ def zip_info(path: Path, arcname: str) -> zipfile.ZipInfo:
     return info
 
 
-def append_text(zf: zipfile.ZipFile, arcname: str, text: str) -> None:
+def append_text(zf: zipfile.ZipFile, arcname: str, text: str,
+                crlf: bool = True) -> None:
     info = zipfile.ZipInfo(arcname)
     info.date_time = datetime.now().timetuple()[:6]
     info.compress_type = zipfile.ZIP_DEFLATED
     info.create_system = 3
     info.external_attr = (0o644 | stat.S_IFREG) << 16
+    if crlf:
+        text = text.replace("\r\n", "\n").replace("\n", "\r\n")
     zf.writestr(info, text.encode("utf-8"))
 
 
@@ -112,26 +133,36 @@ def build(version: str, output: Path, top_dir: str) -> tuple[int, str]:
                          compresslevel=9) as zf:
         for path in files:
             rel = path.relative_to(ROOT).as_posix()
-            zf.writestr(zip_info(path, f"{top_dir}/{rel}"), path.read_bytes())
+            zf.writestr(zip_info(path, f"{top_dir}/{rel}"), payload(path))
         append_text(zf, f"{top_dir}/VERSION.txt", (
             f"ClassConnector {version}\n"
             f"构建时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"包含: 采集端 / 管理端 / 安装脚本 / 文档 / 测试 / VS Code 配置\n"
+            f"包含: 采集端 / 管理端 / 绿色便携启动脚本 / 文档 / 测试\n"
+            f"      Visual Studio 解决方案 (.sln/.pyproj) 与 VS Code 配置\n"
+            f"要求: Python 3.8+\n"
             f"仓库: https://github.com/ssq0324/ClassConnector\n"
         ))
-        append_text(zf, f"{top_dir}/README-先看.txt", (
-            "ClassConnector 班级连接器 — 快速开始\n"
+        append_text(zf, f"{top_dir}/README-FIRST.txt", (
+            "ClassConnector — 快速开始（推荐绿色版，无需安装）\n"
             "========================================\n\n"
-            "【教室电脑 / 采集端】要求 Python 3.9+\n"
+            "【绿色版：不写注册表 / 不自启 / 不改系统 Python】要求 Python 3.8+\n"
+            "  Windows      : 双击 scripts/start-portable.bat\n"
+            "  Linux/macOS  : bash scripts/start-portable.sh\n"
+            "首次运行会在本文件夹内建 runtime/venv 并装核心依赖，\n"
+            "随后自动启动服务并打开 http://127.0.0.1:8420/\n"
+            "退出按 Ctrl+C；卸载直接删除整个文件夹。\n"
+            "全部说明见 PORTABLE.txt 与 docs/PORTABLE.md。\n\n"
+            "【正式安装版：需要开机自启时】\n"
             "  Windows      : 双击 scripts/install.bat\n"
             "  Linux/macOS  : bash scripts/install.sh\n"
-            "  任意系统     : python -m agent.install\n"
-            "安装向导会设置退出密码、开机自启并后台启动。\n\n"
-            "【管理端】浏览器打开 http://<设备IP>:8420\n"
-            "或在连接面板填写设备 IP + 端口。\n\n"
-            "【VS Code 开发】用 VS Code 打开本文件夹，\n"
-            "安装推荐扩展后按 F5 即可调试采集端，详见 docs/DEVELOPMENT.md。\n\n"
+            "  任意系统     : python -m agent.install\n\n"
+            "【退出密码（可选）】双击 scripts/set-password.bat\n\n"
+            "【用 Visual Studio 编辑】双击 ClassConnector.sln\n"
+            "  需 VS 2019/2022 +「Python 开发」工作负载，F5 即调试。\n"
+            "  详见 docs/VISUAL_STUDIO.md；VS Code 见 docs/DEVELOPMENT.md。\n\n"
             "完整说明见 README.md，接口见 docs/API.md，常见问题见 docs/FAQ.md。\n"
+            "注意：全部 .bat 均为纯 ASCII + CRLF，请勿改成 UTF-8 中文或 LF 换行，\n"
+            "否则中文 Windows 的 cmd 会把命令拆碎导致启动失败。\n"
         ))
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
     return len(files) + 2, digest

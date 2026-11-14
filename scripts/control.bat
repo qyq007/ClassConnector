@@ -1,5 +1,6 @@
 @echo off
-chcp 65001 >nul
-cd /d "%~dp0.."
+setlocal
+rem Local control commands for the INSTALLED agent.
+cd /d "%~dp0.." || exit /b 1
 python -m agent.control %*
 pause

@@ -26,6 +26,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from agent import __version__
+from agent.compat import to_thread
 from agent.config import (
     Config, TTS_VOICES, get_local_ip, has_password, set_password,
     verify_password,
@@ -293,14 +294,14 @@ def create_app(
     @app.get("/api/camera/devices")
     async def camera_devices(request: Request):
         check_auth(request)
-        devices = await asyncio.to_thread(runtime.camera.list_devices)
+        devices = await to_thread(runtime.camera.list_devices)
         return {"devices": devices, "current": runtime.camera.config().get("index", 0)}
 
     @app.get("/api/camera/snapshot")
     async def camera_snapshot(request: Request):
         check_auth(request, allow_internal=True)
         runtime.touch()
-        jpeg = await asyncio.to_thread(runtime.camera.snapshot)
+        jpeg = await to_thread(runtime.camera.snapshot)
         return Response(content=jpeg, media_type="image/jpeg",
                         headers={"Cache-Control": "no-store, no-cache"})
 
@@ -316,7 +317,7 @@ def create_app(
                     if await request.is_disconnected():
                         break
                     try:
-                        jpeg = await asyncio.to_thread(q.get, True, 2.0)
+                        jpeg = await to_thread(q.get, True, 2.0)
                     except queue.Empty:
                         jpeg = runtime.camera.last_jpeg  # 保活并维持画面
                     yield (
@@ -346,14 +347,14 @@ def create_app(
     async def screen_displays(request: Request):
         check_auth(request)
         from agent import screen
-        return {"displays": await asyncio.to_thread(screen.list_displays)}
+        return {"displays": await to_thread(screen.list_displays)}
 
     @app.get("/api/screen/shot")
     async def screen_shot(request: Request, display: int = 0, scale: float = 1.0):
         check_auth(request)
         from agent import screen
         runtime.touch()
-        png, fallback, meta = await asyncio.to_thread(screen.capture, cfg, display, scale)
+        png, fallback, meta = await to_thread(screen.capture, cfg, display, scale)
         return Response(
             content=png,
             media_type="image/png",

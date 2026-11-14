@@ -2,6 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "绿色便携模式（推荐 · 不写系统）",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent.portable",
+      "args": ["--no-browser"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
       "name": "采集端：调试启动（无托盘 · 8420）",
       "type": "debugpy",
       "request": "launch",

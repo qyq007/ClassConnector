@@ -1,9 +1,7 @@
 @echo off
-chcp 65001 >nul
-title ClassConnector 采集端（前台调试）
-cd /d "%~dp0.."
-echo 前台运行采集端，按 Ctrl+C 退出。
-echo 正式使用请执行 install.bat 安装为开机自启后台服务。
-echo.
+setlocal
+rem Start the INSTALLED agent in the foreground (Ctrl+C to stop).
+rem For portable mode use scripts\start-portable.bat
+cd /d "%~dp0.." || exit /b 1
 python -m agent %*
 pause
