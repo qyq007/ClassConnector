@@ -1,0 +1,66 @@
+name: Build Windows EXE
+
+# PR / tag / 手动触发都会在 Windows runner 上构建 ClassConnector.exe。
+# PR 触发时从 Checks 页面下载 artifact「ClassConnector-Windows-exe」即可拿到 exe；
+# 打 v* tag 时自动把 exe 附加到对应 Release。
+on:
+  pull_request:
+    branches: [main]
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: 安装构建与运行依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-build.txt
+
+      - name: 确认图形界面与 WebSocket 运行时依赖
+        # tkinter 缺失会让 exe 打不开设置窗口；websockets 缺失会让 /ws 失效
+        run: python -c "import tkinter, websockets, fastapi, uvicorn, PIL; print('runtime deps OK')"
+
+      - name: 生成统一图标资源
+        run: python scripts/make_icons.py
+
+      - name: 打包 ClassConnector.exe
+        run: python scripts/build_exe.py --dist dist --work build/pyinstaller
+
+      - name: 校验产物
+        shell: pwsh
+        run: |
+          $exe = Get-Item dist/ClassConnector.exe
+          if (-not $exe -or $exe.Length -lt 5MB) { throw "exe 不存在或体积异常" }
+          Write-Output "SIZE=$($exe.Length) bytes"
+          Get-FileHash dist/ClassConnector.exe -Algorithm SHA256 | Format-List
+
+      - name: 上传 exe 到构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClassConnector-Windows-exe
+          path: dist/ClassConnector.exe
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: 附加到 Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/ClassConnector.exe
+          fail_on_unmatched_files: true

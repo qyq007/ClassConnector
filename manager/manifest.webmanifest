@@ -1,0 +1,14 @@
+{
+  "name": "ClassConnector 班级连接器",
+  "short_name": "班级连接器",
+  "description": "局域网班级连接器管理端",
+  "icons": [
+    { "src": "./icon.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ],
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "lang": "zh-CN"
+}

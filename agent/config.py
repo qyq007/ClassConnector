@@ -18,6 +18,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from agent.paths import is_frozen, writable_root
+
 APP_NAME = "ClassConnector"
 DEFAULT_PORT = 8420
 PBKDF2_ITERATIONS = 200_000
@@ -36,12 +38,15 @@ DEFAULT_CONFIG: dict[str, Any] = {
     # 休眠
     "idle_timeout": 20,  # 无任何管理端连接多少秒后进入休眠（0 = 不休眠）
     # 摄像头
+    # index / remote_select 属于「主机特权」：默认只有本机的图形设置窗口能枚举并
+    # 选择摄像头，网络侧管理端只能使用主机选定的那一个设备，且不能自行解锁。
     "camera": {
         "index": 0,
         "width": 1280,
         "height": 720,
         "fps": 15,
         "quality": 70,
+        "remote_select": False,
     },
     # 音频（16kHz / 单声道 / 16bit，浏览器端会重采样）
     "audio": {
@@ -85,6 +90,9 @@ def app_dir() -> Path:
     override = os.environ.get("CLASSCONNECTOR_HOME")
     if override:
         path = Path(override).expanduser()
+    elif is_frozen():
+        # exe 绿色版：数据全部落在 exe 所在目录的 data/ 下
+        path = writable_root() / "data"
     elif os.name == "nt":
         base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
         path = Path(base) / APP_NAME

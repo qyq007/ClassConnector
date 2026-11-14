@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from agent.config import app_dir, get_local_ip, log_path, pid_path
+from agent.paths import resource_root
 
 IS_WIN = os.name == "nt"
 IS_MAC = sys.platform == "darwin"
@@ -23,8 +24,8 @@ AUTOSTART_KEY = "ClassConnector"
 
 
 def project_root() -> Path:
-    """仓库根目录（agent 包的上一级）。"""
-    return Path(__file__).resolve().parent.parent
+    """资源根目录（源码为仓库根，exe 内为 PyInstaller 解压目录）。"""
+    return resource_root()
 
 
 def python_exe(hidden: bool = True) -> str:

@@ -22,7 +22,8 @@ from pathlib import Path
 from typing import Any
 
 from agent.config import Config, app_dir
-from agent.platform_util import IS_LINUX, IS_MAC, IS_WIN, project_root, python_exe
+from agent.paths import banner_argv, resource_root, writable_root
+from agent.platform_util import IS_LINUX, IS_MAC, IS_WIN, python_exe
 
 logger = logging.getLogger("cc.banner")
 
@@ -196,9 +197,9 @@ class BannerManager:
         }
         spec_path = self._spec_dir / f"{banner['id']}.json"
         spec_path.write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
-        env = {**dict(os.environ), "PYTHONPATH": str(project_root())}
+        env = {**dict(os.environ), "PYTHONPATH": str(resource_root())}
         kwargs: dict[str, Any] = {
-            "cwd": str(project_root()), "env": env,
+            "cwd": str(writable_root()), "env": env,
             "stdin": subprocess.DEVNULL,
             "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL,
         }
@@ -210,7 +211,7 @@ class BannerManager:
             kwargs["close_fds"] = True
         try:
             proc = subprocess.Popen(
-                [python_exe(hidden=IS_WIN), "-m", "agent.banner_window", str(spec_path)],
+                banner_argv(spec_path, python_exe(hidden=IS_WIN)),
                 **kwargs,
             )
         except OSError as exc:

@@ -6,7 +6,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{2F7B1A6C-3D4E-4A1B-9C8D-7E6F5A4B3C2D}</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>agent\portable.py</StartupFile>
+    <StartupFile>app_main.py</StartupFile>
     <SearchPath>.</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -36,9 +36,11 @@
     <Compile Include="agent\compat.py" />
     <Compile Include="agent\config.py" />
     <Compile Include="agent\control.py" />
+    <Compile Include="agent\desktop.py" />
     <Compile Include="agent\install.py" />
     <Compile Include="agent\main.py" />
     <Compile Include="agent\markdown_render.py" />
+    <Compile Include="agent\paths.py" />
     <Compile Include="agent\platform_util.py" />
     <Compile Include="agent\portable.py" />
     <Compile Include="agent\screen.py" />
@@ -46,28 +48,43 @@
     <Compile Include="agent\state.py" />
     <Compile Include="agent\tray.py" />
     <Compile Include="agent\tts.py" />
+    <Compile Include="app_main.py" />
+    <Compile Include="scripts\build_exe.py" />
     <Compile Include="scripts\gen_vs_project.py" />
+    <Compile Include="scripts\make_icons.py" />
     <Compile Include="scripts\package.py" />
     <Compile Include="tests\password_flow_test.py" />
     <Compile Include="tests\smoke_test.py" />
+    <Compile Include="tests\test_lockdown.py" />
     <Compile Include="tests\test_units.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include=".editorconfig" />
+    <Content Include=".github\workflows\build-exe.yml" />
     <Content Include=".gitignore" />
+    <Content Include="ClassConnector.spec" />
     <Content Include="PORTABLE.txt" />
     <Content Include="README.md" />
+    <Content Include="assets\icon.ico" />
+    <Content Include="assets\icon.png" />
+    <Content Include="assets\icon.svg" />
     <Content Include="docs\API.md" />
     <Content Include="docs\ARCHITECTURE.md" />
+    <Content Include="docs\DESKTOP.md" />
     <Content Include="docs\DEVELOPMENT.md" />
     <Content Include="docs\FAQ.md" />
     <Content Include="docs\PORTABLE.md" />
     <Content Include="docs\VISUAL_STUDIO.md" />
     <Content Include="manager\app.js" />
+    <Content Include="manager\apple-touch-icon.png" />
     <Content Include="manager\audio.js" />
+    <Content Include="manager\favicon.ico" />
+    <Content Include="manager\icon.png" />
     <Content Include="manager\index.html" />
+    <Content Include="manager\manifest.webmanifest" />
     <Content Include="manager\markdown.js" />
     <Content Include="manager\style.css" />
+    <Content Include="requirements-build.txt" />
     <Content Include="requirements-dev.txt" />
     <Content Include="requirements-portable.txt" />
     <Content Include="requirements.txt" />
@@ -82,7 +99,10 @@
     <Content Include="scripts\uninstall.sh" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include=".github\" />
+    <Folder Include=".github\workflows\" />
     <Folder Include="agent\" />
+    <Folder Include="assets\" />
     <Folder Include="docs\" />
     <Folder Include="manager\" />
     <Folder Include="scripts\" />

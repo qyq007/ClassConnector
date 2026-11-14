@@ -21,7 +21,7 @@
 
 ## 三步开始
 
-1. 解压 zip，得到 `ClassConnector-v1.1.0/`。
+1. 解压 zip，得到 `ClassConnector-v1.2.0/`。
 2. 双击 **`scripts/start-portable.bat`**
    （Linux / macOS：`bash scripts/start-portable.sh`）
 3. 首次运行会自动在文件夹内创建 `runtime/venv` 并安装核心依赖，随后启动服务并打开浏览器。
@@ -41,7 +41,7 @@
 ## 目录结构（绿色版运行时新增）
 
 ```
-ClassConnector-v1.1.0/
+ClassConnector-v1.2.0/
 ├── data/                    ← 唯一的数据写入位置
 │   ├── config.json          配置（含 PBKDF2 密码哈希）
 │   ├── agent.log            运行日志
@@ -82,7 +82,7 @@ runtime/venv/bin/python -m pip install -r requirements.txt
 ## 停止与卸载
 
 - **停止**：在黑色控制台窗口按 `Ctrl+C`，或直接关闭窗口。
-- **卸载**：直接删除整个 `ClassConnector-v1.1.0` 文件夹，无残留、无需反安装。
+- **卸载**：直接删除整个 `ClassConnector-v1.2.0` 文件夹，无残留、无需反安装。
 
 ## 用 Visual Studio 编辑
 

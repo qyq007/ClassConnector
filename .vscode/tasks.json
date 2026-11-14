@@ -27,9 +27,17 @@
       "problemMatcher": []
     },
     {
+      "label": "② 打开桌面设置窗口（GUI）",
+      "type": "shell",
+      "command": "python -m agent.desktop --no-browser",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "③ 单元测试（无需服务）",
       "type": "shell",
-      "command": "python -m pytest tests/test_units.py -q",
+      "command": "python -m pytest tests/test_units.py tests/test_lockdown.py -q",
       "options": { "cwd": "${workspaceFolder}" },
       "group": { "kind": "test", "isDefault": true },
       "problemMatcher": []
@@ -61,6 +69,20 @@
       "label": "⑤ 打包发行 zip",
       "type": "shell",
       "command": "python scripts/package.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "⑤ 生成统一图标（桌面 + Web）",
+      "type": "shell",
+      "command": "python scripts/make_icons.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "⑥ 构建 Windows exe（仅 Windows）",
+      "type": "shell",
+      "command": "python scripts/build_exe.py",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     }

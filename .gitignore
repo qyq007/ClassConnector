@@ -11,6 +11,8 @@ dist/
 
 # 运行时数据（含密码哈希，绝不可提交）
 .classconnector/
+data/
+runtime/
 config.local.json
 *.pid
 *.log

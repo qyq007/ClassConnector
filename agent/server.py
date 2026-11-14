@@ -32,10 +32,11 @@ from agent.config import (
     verify_password,
 )
 from agent.markdown_render import strip_markdown, to_html
+from agent.paths import manager_dir
 from agent.platform_util import autostart_status, project_root, start_background
 from agent.state import Client, Runtime
 
-MANAGER_DIR = project_root() / "manager"
+MANAGER_DIR = manager_dir()
 MJPEG_BOUNDARY = "classconnector-frame"
 
 
@@ -207,9 +208,11 @@ def create_app(
             raise HTTPException(status_code=400, detail="没有可更新的配置项")
         if "require_auth" in clean:
             require_password(cfg, payload.get("password"))
-        # 收敛子配置，避免未知键污染
+        # 收敛子配置，避免未知键污染。
+        # 注意 camera 里刻意不含 index / remote_select：摄像头设备选择是主机特权，
+        # 网络侧既不能换设备，也不能把「允许远程选择」这个开关自己打开。
         for section, keys in {
-            "camera": {"index", "width", "height", "fps", "quality"},
+            "camera": {"width", "height", "fps", "quality"},
             "audio": {"enabled", "sample_rate", "chunk"},
             "banner": {"auto_close", "need_ack_default", "tts_default"},
             "tts": {"enabled", "voice", "rate", "volume", "urgent_alert"},
@@ -219,7 +222,7 @@ def create_app(
         cfg.update(clean)
         cfg.save()
         if runtime.camera and "camera" in clean:
-            runtime.camera.set_config(clean["camera"])
+            runtime.camera.set_config(clean["camera"], remote=True)
         if "require_auth" in clean:
             runtime.revoke_tokens()
         runtime.broadcast_json({"type": "config", "config": cfg.public()})
@@ -276,26 +279,37 @@ def create_app(
     @app.get("/api/camera/config")
     async def camera_config(request: Request):
         check_auth(request)
-        return {"config": runtime.camera.config(), "status": runtime.camera.status()}
+        return {
+            "config": runtime.camera.config(),
+            "status": runtime.camera.status(),
+            "camera_select_locked": not runtime.camera.remote_select_allowed(),
+        }
 
     @app.post("/api/camera/config")
     async def set_camera_config(request: Request):
         check_auth(request)
         payload = await _body(request)
         patch = payload.get("config") if isinstance(payload.get("config"), dict) else payload
+        locked = not runtime.camera.remote_select_allowed()
         try:
-            result = runtime.camera.set_config(patch)
+            result = runtime.camera.set_config(patch, remote=True)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        ignored = [k for k in ("index",) if locked and k in patch]
         runtime.broadcast_json({"type": "camera_config", "config": result})
         runtime.log("info", f"画质已调整：{result}")
-        return {"ok": True, "config": result}
+        return {
+            "ok": True,
+            "config": result,
+            "camera_select_locked": locked,
+            "ignored_fields": ignored,
+        }
 
     @app.get("/api/camera/devices")
     async def camera_devices(request: Request):
         check_auth(request)
-        devices = await to_thread(runtime.camera.list_devices)
-        return {"devices": devices, "current": runtime.camera.config().get("index", 0)}
+        view = await to_thread(lambda: runtime.camera.devices_view(remote=True))
+        return view
 
     @app.get("/api/camera/snapshot")
     async def camera_snapshot(request: Request):
@@ -491,7 +505,8 @@ def create_app(
                     runtime.audio.set_talk_mode(bool(msg.get("active")))
             elif mtype == "camera_config":
                 try:
-                    result = runtime.camera.set_config(msg.get("config") or msg)
+                    result = runtime.camera.set_config(msg.get("config") or msg,
+                                                      remote=True)
                     runtime.broadcast_json({"type": "camera_config", "config": result})
                 except ValueError as exc:
                     await ws.send_json({"type": "error", "message": str(exc)})

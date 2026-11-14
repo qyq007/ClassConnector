@@ -1,9 +1,20 @@
 ClassConnector 绿色便携版 — 先看这里
 ========================================
 
-【最快捷的使用方式：不用安装，不改电脑任何设置】
+【推荐：桌面版 exe，双击即用，不需要 .bat / 命令行 / Python】
 
-1. 解压本 zip，得到 ClassConnector-v1.1.0/ 文件夹。
+  从 Release 或 PR 的 Actions 产物下载 ClassConnector.exe，双击后
+  会打开「ClassConnector · 设置」图形窗口，服务自动在后台启动。
+  窗口里可设置摄像头、播报语音、音效、端口、密码与摄像头网络权限；
+  底部状态栏显示局域网地址，浏览器打开即进入管理端。
+  本 zip 为纯净源码包，exe 由 .github/workflows/build-exe.yml 在
+  Windows 上自动构建；说明见 docs/DESKTOP.md。
+
+  源码环境下也可执行：python -m agent.desktop  （同一个设置窗口）
+
+【以下为脚本方式（可选，需要 Python 3.8+）】
+
+1. 解压本 zip，得到 ClassConnector-v1.2.0/ 文件夹。
 2. 双击 scripts\start-portable.bat
    （Linux / macOS 执行 bash scripts/start-portable.sh）
 3. 首次运行会在本文件夹内创建 runtime\venv 并安装核心依赖，

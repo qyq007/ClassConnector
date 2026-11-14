@@ -10,7 +10,8 @@
     player: new PcmPlayer(), recorder: null,
     currentBannerId: null, history: [],
     autoShotTimer: null, statusTimer: null, reconnectTimer: null,
-    bannerTimer: null, lastShotUrl: null, initialRequireAuth: false
+    bannerTimer: null, lastShotUrl: null, initialRequireAuth: false,
+    cameraLocked: true   // 默认按「主机锁定」处理，连接成功后由 /api/camera/devices 更新
   };
 
   /* =============================== 工具 =============================== */
@@ -442,7 +443,9 @@
     var w = cam.width || 1280, h = cam.height || 720, fps = cam.fps || 15;
     ensureOption($('resolutionSelect'), w + 'x' + h, w + ' × ' + h + '（当前）');
     ensureOption($('fpsSelect'), fps, fps + ' fps（当前）');
-    ensureOption($('cameraDeviceSelect'), cam.index, '当前设备（索引 ' + cam.index + '）');
+    if (!S.cameraLocked) {
+      ensureOption($('cameraDeviceSelect'), cam.index, '当前设备（索引 ' + cam.index + '）');
+    }
   }
   async function loadVoices() {
     var d = await apiJson('/api/tts/voices');
@@ -457,7 +460,14 @@
   }
   async function loadCameraDevices() {
     var d = await apiJson('/api/camera/devices');
-    var el = $('cameraDeviceSelect'); el.innerHTML = '';
+    var el = $('cameraDeviceSelect');
+    // 主机锁定摄像头时：服务端只返回主机指定的那一个设备，
+    // 前端直接隐藏设备下拉，避免管理端以为可以枚举/切换本机摄像头。
+    S.cameraLocked = !!d.locked;
+    $('cameraDeviceField').hidden = S.cameraLocked;
+    $('cameraLockHint').hidden = !S.cameraLocked;
+    el.innerHTML = '';
+    if (S.cameraLocked) return;
     d.devices.forEach(function (dev) {
       var op = document.createElement('option');
       op.value = dev.index;
@@ -491,10 +501,13 @@
     var payload = {
       quality: Number($('qualitySlider').value),
       width: Number(wh[0]), height: Number(wh[1]),
-      fps: Number($('fpsSelect').value),
-      index: Number($('cameraDeviceSelect').value)
+      fps: Number($('fpsSelect').value)
     };
-    if (payload.index < 0) delete payload.index;
+    // 只有主机在设置窗口里显式开放后，管理端才能切换摄像头设备
+    if (!S.cameraLocked && $('cameraDeviceSelect').value !== '') {
+      payload.index = Number($('cameraDeviceSelect').value);
+      if (payload.index < 0) delete payload.index;
+    }
     try {
       var d = await postJson('/api/camera/config', payload);
       syncQualityInputs(d.config);

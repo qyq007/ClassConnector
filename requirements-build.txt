@@ -1,0 +1,20 @@
+# Windows exe 构建依赖（GitHub Actions / 本地 Windows 打包用）
+# exe 自带 Python 运行时，最终用户无需安装 Python 或任何依赖。
+# 这些包会被 PyInstaller 一起打进 ClassConnector.exe。
+pyinstaller>=6.3,<7
+
+# 核心服务
+fastapi>=0.104.0
+uvicorn>=0.24.0
+# WebSocket 后端：/ws 的实时状态、音频与对讲都依赖它，必须打进 exe
+websockets>=12.0
+python-multipart>=0.0.6
+Pillow>=10.0.0
+
+# 摄像头 / 截图 / 音频 / 语音播报（缺失时程序会自动降级）
+opencv-python>=4.8.0
+numpy>=1.24.0
+mss>=9.0.0
+PyAudio>=0.2.13
+edge-tts>=6.1.0
+pygame>=2.5.0

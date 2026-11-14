@@ -111,11 +111,24 @@ class CameraHub:
     def config(self) -> dict[str, Any]:
         return self.cfg.get("camera", {})
 
-    def set_config(self, patch: dict[str, Any]) -> dict[str, Any]:
+    def remote_select_allowed(self) -> bool:
+        """主机是否允许管理端枚举 / 切换摄像头（默认禁止）。"""
+        return bool(self.cfg.get("camera.remote_select", False))
+
+    def set_config(self, patch: dict[str, Any], *, remote: bool = False) -> dict[str, Any]:
+        """应用画质配置。
+
+        ``remote=True`` 表示调用来自网络侧管理端：此时 ``index`` 属于主机特权，
+        会被直接丢弃（而非报错，避免泄露本机设备信息）；``remote_select`` 开关
+        本身永远不接受网络修改。本机图形设置窗口用 ``remote=False``。
+        """
         # 修改配置（尤其是设备索引）后允许重新探测摄像头
         allowed = {"index", "width", "height", "fps", "quality"}
+        source = dict(patch or {})
+        if remote and not self.remote_select_allowed():
+            source.pop("index", None)
         clean: dict[str, Any] = {}
-        for key, value in patch.items():
+        for key, value in source.items():
             if key not in allowed:
                 continue
             try:
@@ -170,6 +183,33 @@ class CameraHub:
             "paused": self._paused,
             "last_error": self.last_error,
             "opencv": CV2_OK,
+            "camera_select_locked": not self.remote_select_allowed(),
+        }
+
+    def devices_view(self, *, remote: bool = True) -> dict[str, Any]:
+        """返回管理端可见的设备列表。
+
+        锁定状态下**只返回主机设置里选定的那一个设备**，不返回本机全部摄像头、
+        也不暴露设备总数，避免网络侧探测教室电脑上的其他影像设备。
+        ``remote=False`` 供本机设置窗口使用，返回完整枚举结果。
+        """
+        current = int(self.config().get("index", 0))
+        locked = remote and not self.remote_select_allowed()
+        if locked:
+            return {
+                "devices": [{
+                    "index": current,
+                    "name": "主机指定的摄像头",
+                    "width": 0,
+                    "height": 0,
+                }],
+                "current": current,
+                "locked": True,
+            }
+        return {
+            "devices": self.list_devices(),
+            "current": current,
+            "locked": False,
         }
 
     def list_devices(self) -> list[dict[str, Any]]:

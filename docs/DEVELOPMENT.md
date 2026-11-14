@@ -63,6 +63,9 @@ python -m pip install fastapi uvicorn python-multipart pytest requests websocket
 | ③ 端到端冒烟测试 | `pytest tests/smoke_test.py -q`，**需先启动采集端** |
 | ④ 静态检查 + 前端语法 | `pyflakes` + `compileall` |
 | ⑤ 打包发行 zip | `python scripts/package.py`，输出到 `dist/` |
+| ⑥ 构建 Windows exe | `python scripts/build_exe.py`（**仅 Windows**，或由 `.github/workflows/build-exe.yml` 在 CI 构建） |
+
+桌面设置窗口用「**桌面设置窗口（GUI · 与 exe 相同）**」配置 F5 启动，等价于 `python -m agent.desktop --no-browser`；无显示器环境可用 `python -m agent.desktop --headless-check` 只自检控制层。exe 打包链路见 [DESKTOP.md](DESKTOP.md)。
 
 测试侧栏默认只收集 `tests/test_units.py`，避免在没有启动服务时误跑需要网络的冒烟测试。
 
@@ -85,7 +88,7 @@ python scripts/package.py --output /tmp/cc.zip   # 自定义输出路径
 python scripts/gen_vs_project.py                # 新增文件后刷新 .sln / .pyproj
 ```
 
-脚本按白名单收集 `agent/ manager/ scripts/ docs/ tests/ .vscode/` 与顶层说明文件，自动排除 `.git`、`__pycache__`、`*.pyc`、`.pytest_cache`、`data/`、`runtime/`、日志与音频缓存。zip 内含单一顶层目录 `ClassConnector-v<版本>/`，并附 `VERSION.txt`、`README-FIRST.txt` 与 `PORTABLE.txt`，同时打印文件数与 SHA256 便于发布校验。**所有 `.bat` / `.sln` / `.pyproj` 在打包时强制转为 CRLF**，请勿把它们改成 LF 或加入中文（cmd 会解析错乱）。
+脚本按白名单收集 `agent/ manager/ scripts/ docs/ tests/ .vscode/ assets/ .github/` 与顶层说明文件（含 `app_main.py`、`ClassConnector.spec`、`requirements-build.txt`），自动排除 `.git`、`__pycache__`、`*.pyc`、`.pytest_cache`、`data/`、`runtime/`、`build/`、`dist/`、日志与音频缓存。zip 内含单一顶层目录 `ClassConnector-v<版本>/`，并附 `VERSION.txt`、`README-FIRST.txt` 与 `PORTABLE.txt`，同时打印文件数与 SHA256 便于发布校验。**所有 `.bat` / `.sln` / `.pyproj` 在打包时强制转为 CRLF**，请勿把它们改成 LF 或加入中文（cmd 会解析错乱）。
 
 版本号取自 `agent/__init__.py` 的 `__version__`，升级版本只需改这一处。
 

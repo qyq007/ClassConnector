@@ -27,12 +27,14 @@ import time
 import webbrowser
 from pathlib import Path
 
+from agent.paths import data_dir
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
 def prepare() -> Path:
     """把所有运行时路径锁定到解压目录内的 data/。"""
-    data = ROOT / "data"
+    data = data_dir()
     data.mkdir(parents=True, exist_ok=True)
     os.environ["CLASSCONNECTOR_HOME"] = str(data)
     os.environ.setdefault("CLASSCONNECTOR_CONFIG", str(data / "config.json"))

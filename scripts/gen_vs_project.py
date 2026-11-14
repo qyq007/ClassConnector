@@ -40,6 +40,10 @@ SOLUTION_ITEMS = [
     "requirements.txt",
     "requirements-portable.txt",
     "requirements-dev.txt",
+    "requirements-build.txt",
+    "app_main.py",
+    "ClassConnector.spec",
+    "docs\\DESKTOP.md",
     "docs\\PORTABLE.md",
     "docs\\VISUAL_STUDIO.md",
     "docs\\ARCHITECTURE.md",
@@ -98,7 +102,7 @@ def build_pyproj(files: list[Path]) -> str:
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{PROJECT_GUID}</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>agent\\portable.py</StartupFile>
+    <StartupFile>app_main.py</StartupFile>
     <SearchPath>.</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>

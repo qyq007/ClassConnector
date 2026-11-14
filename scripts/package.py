@@ -3,7 +3,7 @@
 
 用法：
     python scripts/package.py
-    python scripts/package.py --output /workspace/ClassConnector-v1.1.0.zip
+    python scripts/package.py --output /workspace/ClassConnector-v1.2.0.zip
     python scripts/package.py --top-dir ClassConnector
 
 版本号取自 agent/__init__.py 的 __version__。
@@ -23,13 +23,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # 需要打进发行包的目录与顶层文件
-INCLUDE_DIRS = ("agent", "manager", "scripts", "docs", "tests", ".vscode")
+INCLUDE_DIRS = (
+    "agent", "manager", "scripts", "docs", "tests", ".vscode",
+    "assets", ".github",
+)
 INCLUDE_FILES = (
     "README.md",
     "PORTABLE.txt",
     "requirements.txt",
     "requirements-dev.txt",
     "requirements-portable.txt",
+    "requirements-build.txt",
+    "app_main.py",
+    "ClassConnector.spec",
     "ClassConnector.sln",
     "ClassConnector.pyproj",
     ".gitignore",
@@ -137,32 +143,42 @@ def build(version: str, output: Path, top_dir: str) -> tuple[int, str]:
         append_text(zf, f"{top_dir}/VERSION.txt", (
             f"ClassConnector {version}\n"
             f"构建时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"包含: 采集端 / 管理端 / 绿色便携启动脚本 / 文档 / 测试\n"
-            f"      Visual Studio 解决方案 (.sln/.pyproj) 与 VS Code 配置\n"
-            f"要求: Python 3.8+\n"
+            f"包含: 采集端 / 管理端 / 桌面 GUI 设置窗口 / exe 构建配置\n"
+            f"      统一图标 / 文档 / 测试 / Visual Studio 与 VS Code 配置\n"
+            f"源码运行要求: Python 3.8+（编译好的 exe 不需要 Python）\n"
             f"仓库: https://github.com/ssq0324/ClassConnector\n"
         ))
         append_text(zf, f"{top_dir}/README-FIRST.txt", (
-            "ClassConnector — 快速开始（推荐绿色版，无需安装）\n"
+            "ClassConnector — 快速开始（推荐桌面版 exe）\n"
             "========================================\n\n"
-            "【绿色版：不写注册表 / 不自启 / 不改系统 Python】要求 Python 3.8+\n"
-            "  Windows      : 双击 scripts/start-portable.bat\n"
-            "  Linux/macOS  : bash scripts/start-portable.sh\n"
-            "首次运行会在本文件夹内建 runtime/venv 并装核心依赖，\n"
-            "随后自动启动服务并打开 http://127.0.0.1:8420/\n"
-            "退出按 Ctrl+C；卸载直接删除整个文件夹。\n"
-            "全部说明见 PORTABLE.txt 与 docs/PORTABLE.md。\n\n"
-            "【正式安装版：需要开机自启时】\n"
-            "  Windows      : 双击 scripts/install.bat\n"
-            "  Linux/macOS  : bash scripts/install.sh\n"
-            "  任意系统     : python -m agent.install\n\n"
-            "【退出密码（可选）】双击 scripts/set-password.bat\n\n"
-            "【用 Visual Studio 编辑】双击 ClassConnector.sln\n"
-            "  需 VS 2019/2022 +「Python 开发」工作负载，F5 即调试。\n"
-            "  详见 docs/VISUAL_STUDIO.md；VS Code 见 docs/DEVELOPMENT.md。\n\n"
+            "【推荐：双击 exe，无需 Python、无需 .bat、无需命令行】\n"
+            "  从 GitHub Release 或 PR 的 Actions 产物下载 ClassConnector.exe。\n"
+            "  （本 zip 是纯净源码包，exe 由 .github/workflows/build-exe.yml\n"
+            "    在 Windows runner 上自动构建；也可本地运行 build_exe.py 生成。）\n"
+            "  双击 exe -> 打开「ClassConnector · 设置」图形窗口 -> 服务自动后台启动。\n"
+            "  窗口里可以设置：摄像头（本机枚举 / 画质 / 分辨率 / 帧率）、\n"
+            "  播报语音与音效、班级名称、端口、休眠、访问密码、摄像头网络权限。\n"
+            "  底部状态栏显示局域网地址，用浏览器打开即进入管理端。\n"
+            "  退出需输入安装时设置的密码；删除文件夹即卸载。\n"
+            "  详见 docs/DESKTOP.md。\n\n"
+            "【重要：摄像头权限】默认只有本机的设置窗口能枚举并选择摄像头，\n"
+            "  Web 管理端只能使用主机指定的那一路画面，看不到本机其他摄像头。\n"
+            "  如需放开，在设置窗口「摄像头 -> 网络访问权限」勾选即可。\n\n"
+            "【源码 / 脚本方式（可选，需要 Python 3.8+）】\n"
+            "  图形窗口  : python -m agent.desktop   （与 exe 同一个设置窗口）\n"
+            "  Windows   : 双击 scripts/start-portable.bat\n"
+            "  Linux/mac : bash scripts/start-portable.sh\n"
+            "  正式安装  : python -m agent.install（需要开机自启时）\n"
+            "  绿色版数据全部在 data/，不写注册表 / 自启 / 系统 Python。\n\n"
+            "【自己编译 exe（Windows）】\n"
+            "  pip install -r requirements-build.txt\n"
+            "  python scripts/make_icons.py\n"
+            "  python scripts/build_exe.py          -> dist/ClassConnector.exe\n\n"
+            "【用 Visual Studio / VS Code 编辑】\n"
+            "  双击 ClassConnector.sln（需 VS + Python 开发工作负载），或用 VS Code\n"
+            "  打开本文件夹按 F5。详见 docs/VISUAL_STUDIO.md、docs/DEVELOPMENT.md。\n\n"
             "完整说明见 README.md，接口见 docs/API.md，常见问题见 docs/FAQ.md。\n"
-            "注意：全部 .bat 均为纯 ASCII + CRLF，请勿改成 UTF-8 中文或 LF 换行，\n"
-            "否则中文 Windows 的 cmd 会把命令拆碎导致启动失败。\n"
+            "注意：全部 .bat 均为纯 ASCII + CRLF，请勿改成 UTF-8 中文或 LF 换行。\n"
         ))
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
     return len(files) + 2, digest

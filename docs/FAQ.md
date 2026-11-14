@@ -171,3 +171,19 @@ python -m agent.install                # 重新安装并设置新密码
 **Q：Visual Studio 能打开吗？**
 
 双击根目录 `ClassConnector.sln`（VS 2019/2022 +「Python 开发」工作负载），F5 即调试。详见 [VISUAL_STUDIO.md](VISUAL_STUDIO.md)。用 VS Code 则打开 `.vscode/` 配置，见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+
+**Q：不想用 `.bat`，也不想装 Python，有能直接双击的程序吗？**
+
+有。下载 **`ClassConnector.exe`** 双击即可打开「ClassConnector · 设置」图形窗口，服务自动在后台启动；exe 自带 Python 运行时与全部依赖，教室电脑上不需要安装任何东西。窗口里可设置摄像头、播报语音、紧急音效、端口、密码与摄像头网络权限；底部状态栏显示局域网地址。数据只在 exe 同目录 `data/`，删除文件夹即卸载。
+
+exe 由 `.github/workflows/build-exe.yml` 在 Windows runner 上自动构建（PR 的 Checks artifact 或 Release 资产），也可在 Windows 上执行 `python scripts/build_exe.py` 自行编译。**PyInstaller 不支持跨平台编译**，Windows exe 必须在 Windows 上生成。源码环境下 `python -m agent.desktop` 可打开同一个窗口。详见 [DESKTOP.md](DESKTOP.md)。
+
+**Q：为什么管理端看不到「摄像头设备」下拉，也列不出本机所有摄像头？**
+
+这是 v1.2.0 起的**主机侧锁定**（默认开启），属于隐私设计：只有教室电脑上的设置窗口能枚举并选择本机摄像头，Web 管理端只能使用主机指定的那一路画面。服务端 `GET /api/camera/devices` 在锁定状态下只返回一个设备，且不会暴露设备总数；`index` 在网络请求里会被静默忽略，`camera.remote_select` 开关也无法通过任何网络接口修改，因此管理端不能自行解锁。
+
+如需放开，在设置窗口「摄像头 → 网络访问权限」勾选「允许管理端在 Web 上枚举 / 切换摄像头」并保存。请只在可信局域网内开启。
+
+**Q：手机竖屏打开管理端能用吗？**
+
+能。竖屏时所有双栏栅格改为单栏，视频画面放大为 4:3（窄屏 1:1），顶栏换行、标签横向滚动、按钮触控高度 42px，并处理了 `safe-area`。另外浏览器麦克风在非 HTTPS 的 `http://IP` 下仍会被浏览器限制，见上文 HTTPS 说明。

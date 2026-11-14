@@ -18,8 +18,10 @@
 }
 
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; padding: 0; }
 body {
+  padding-bottom: env(safe-area-inset-bottom);
   background: radial-gradient(1200px 700px at 15% -10%, #16294d 0%, var(--bg) 55%) no-repeat, var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
@@ -44,10 +46,10 @@ code { background: #0b1426; border: 1px solid var(--line); border-radius: 5px; p
   backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 30;
 }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 230px; }
+/* 与桌面 exe / 设置窗口同一个图标（scripts/make_icons.py 生成） */
 .logo {
-  width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6); font-weight: 800; letter-spacing: .5px;
-  box-shadow: 0 6px 18px rgba(59, 130, 246, .35);
+  width: 38px; height: 38px; border-radius: 11px; display: block; object-fit: contain;
+  box-shadow: 0 6px 18px rgba(59, 130, 246, .35); flex: none;
 }
 .brand-text { display: flex; flex-direction: column; line-height: 1.25; }
 .brand-text strong { font-size: 15px; letter-spacing: .2px; }
@@ -64,6 +66,13 @@ select:focus, input:focus, textarea:focus { border-color: var(--primary); box-sh
 textarea { resize: vertical; line-height: 1.65; font-family: "SFMono-Regular", Consolas, "Microsoft YaHei", monospace; }
 select { cursor: pointer; }
 #deviceSelect { max-width: 320px; }
+/* 摄像头由主机设置窗口锁定时的提示 */
+.lock-hint {
+  font-size: 12px; line-height: 1.7; color: #93c5fd;
+  background: rgba(37, 99, 235, .1); border: 1px solid #1e40af;
+  border-radius: 10px; padding: 10px 12px; margin: 0 0 12px;
+}
+.lock-hint b { color: #dbeafe; }
 
 /* ---------------- 按钮 ---------------- */
 .btn {
@@ -254,4 +263,69 @@ select { cursor: pointer; }
   #workspace { padding: 14px 12px 40px; }
   .connect-wrap { padding: 24px 12px; }
   .connect-card { padding: 20px; }
+}
+
+/* ---------------- 竖屏 / 触控设备 ----------------
+   竖屏时所有双栏栅格改为单栏，视频舞台放大，顶栏允许换行，
+   触控目标与字号同步增大；横屏窄设备仍走上面的 max-width 规则。 */
+@media (orientation: portrait) {
+  body { overflow-x: hidden; }
+  .connect-wrap, .monitor-layout, .banner-layout, .settings-layout {
+    grid-template-columns: 1fr;
+  }
+  .feature-grid, .option-grid, .status-grid { grid-template-columns: 1fr 1fr; }
+  .video-stage { aspect-ratio: 4 / 3; }
+
+  .topbar {
+    height: auto; min-height: 60px; flex-wrap: wrap;
+    padding: 8px 14px; gap: 8px 12px;
+  }
+  .brand { min-width: 0; flex: 1 1 auto; }
+  .brand-text small { display: none; }
+  .top-center { flex: 1 1 100%; order: 3; }
+  .top-actions { order: 2; }
+  #deviceSelect { max-width: 100%; flex: 1; }
+
+  .tabs {
+    margin-left: -12px; margin-right: -12px; padding: 0 12px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 13px 14px; }
+  .card { padding: 15px; }
+  .button-row .btn { flex: 1 1 140px; }
+
+  .banner-box { width: 96vw; height: 88vh; }
+  .banner-content { padding: 8px 5vw 20px; font-size: 15px; }
+  .banner-bottom { flex-direction: column; align-items: stretch; }
+  .banner-bottom > div { justify-content: center; flex-wrap: wrap; }
+  #shotImage { max-height: 52vh; }
+}
+
+@media (orientation: portrait) and (max-width: 620px) {
+  .feature-grid, .option-grid, .status-grid { grid-template-columns: 1fr; }
+  .video-stage { aspect-ratio: 1 / 1; }
+  .field-row { flex-direction: column; }
+  .field.port, .field.inline { width: 100%; }
+  .btn, select, input, textarea { min-height: 42px; font-size: 15px; }
+  .btn-mini { min-height: 34px; font-size: 12px; }
+
+  /* 顶栏：brand 不再抢剩余空间，隐藏版本号，保证「断开」按钮完整显示 */
+  .topbar { padding: 8px 12px; }
+  .brand { flex: 0 1 auto; min-width: 0; }
+  .brand-text strong { font-size: 14px; }
+  .top-actions { flex: 0 0 auto; }
+  .top-actions .version { display: none; }
+  .top-actions .btn { padding: 8px 10px; font-size: 12px; white-space: nowrap; }
+  #deviceSelect { max-width: 100%; }
+
+  /* 视频工具条：按钮两两一行，音量滑块独占一行，避免撑出屏幕 */
+  .video-toolbar .btn { flex: 1 1 44%; }
+  .video-toolbar .slider { flex: 1 1 100%; max-width: 100%; }
+  .video-toolbar .sep { display: none; }
+  .video-overlay { right: 12px; }
+
+  .connect-card { padding: 18px; }
+  .connect-head h1 { font-size: 22px; }
+  .banner-box h1 { font-size: 24px; }
 }

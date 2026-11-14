@@ -4,13 +4,13 @@
 
 > 设计目标：**不依赖云服务器、不依赖公网**。所有能力都跑在局域网内，一个 Python 进程 + 一个浏览器页面即可工作。
 
-> **v1.1.0 重要更新**
-> - 修复 Windows 双击 `.bat` 的中文乱码报错（`echo`→`cho`、`cd /d` 被吞、`No module named 'agent'`）：全部批处理改为**纯 ASCII + CRLF**，去掉 `chcp 65001`。
-> - 新增**绿色便携版**：不安装、不写注册表 / 自启 / 系统 Python，解压双击即用，数据只在解压目录 `data/`，删文件夹即卸载。
-> - 最低 Python 版本降为 **3.8**（补齐 `asyncio.to_thread` 兼容）。
-> - 新增 **Visual Studio 解决方案 `ClassConnector.sln`**，双击即可用 VS 打开、F5 调试。
+> **v1.2.0 重要更新**
+> - 新增**桌面版 `ClassConnector.exe`**：双击即打开图形设置窗口，服务在后台自动运行，**不需要 .bat、不需要命令行、不需要用户安装 Python**（exe 自带运行时）。主窗口只有设置：摄像头、播报语音、音效、网络与安全；底部状态栏显示局域网地址。
+> - **摄像头主机侧锁定**：默认只有教室电脑上的设置窗口能枚举并选择本机摄像头；Web 管理端只能使用主机指定的那一路画面，`/api/camera/devices` 不返回其他设备，网络侧也无法自行解锁。需放开时在设置窗口勾选即可。
+> - **Web 端 icon 与桌面应用完全一致**（同一份 `assets/icon.*`，含 favicon / PWA / apple-touch-icon），管理端新增竖屏与窄屏响应式布局。
+> - 保留 v1.1.0 的修复：`.bat` 纯 ASCII + CRLF、绿色便携版、Python 3.8 兼容、`ClassConnector.sln` Visual Studio 解决方案。
 >
-> 请从 [Releases](https://github.com/ssq0324/ClassConnector/releases) 下载 **`ClassConnector-v1.1.0.zip`**；v1.0.0 的 Windows 批处理有编码问题，请勿使用。
+> 请从 [Releases](https://github.com/ssq0324/ClassConnector/releases) 下载 **`ClassConnector.exe`**（推荐）或 `ClassConnector-v1.2.0.zip` 源码包；v1.0.0 已废弃。
 
 ---
 
@@ -24,7 +24,8 @@
 | 采集端 | 支持局域网管理 | 监听 `0.0.0.0:8420`，内置 HTTP/WebSocket 服务并开放 CORS，可被任意管理端跨源连接 |
 | 采集端 | 无设备连接时休眠 | 连接数 + 视频流订阅数归零且超过 `idle_timeout` 后，暂停摄像头/麦克风线程并释放设备；有新连接立即唤醒 |
 | 管理端 | Web 上输入 IP + 端口连接 | 连接面板填写地址，或直接在浏览器打开 `http://设备IP:端口` 自动连接；支持保存/切换多台设备 |
-| 管理端 | 查看指定摄像头画面、设置画质、听声音 | MJPEG 推流；可调分辨率 / JPEG 质量 / 帧率 / 设备索引；16 kHz PCM 监听，音量可调 |
+| 管理端 | 查看指定摄像头画面、设置画质、听声音 | MJPEG 推流；可调分辨率 / JPEG 质量 / 帧率；16 kHz PCM 监听，音量可调。**摄像头设备只能由主机设置窗口选定**，管理端默认无法枚举或切换本机其他摄像头 |
+| 采集端 | 图形化设置、运行 exe | `ClassConnector.exe`（PyInstaller 单文件、无控制台）打开纯设置主窗口；摄像头 / 语音 / 音效 / 端口 / 密码均可在窗口里修改 |
 | 管理端 | 麦克风对讲（对讲时关闭音频） | 浏览器录音重采样后经 WebSocket 上传；开启对讲时采集端**立即停止推送教室音频**，避免啸叫与回声 |
 | 管理端 | 横幅通知：Markdown 长文本、签收按钮、Edge TTS 播报、紧急事件独立音频 | 全屏置顶窗口渲染 Markdown（可滚动），签收状态实时回传；`edge-tts` 朗读；紧急事件使用红色样式并先播放独立警报音 |
 | 管理端 | 截取屏幕内容 | PNG 截图，支持多显示器与缩放；无图形会话时返回占位图并明确标记 |
@@ -67,9 +68,28 @@ graph LR
 
 ## 三、快速开始
 
-### 0. 绿色便携版（推荐先试：不安装、不改电脑设置）
+### 0. 桌面版 exe（推荐：双击即用，无需 Python / 无需 .bat）
 
-要求 **Python 3.8+**（Windows / Linux / macOS 均可）。解压 zip 后：
+下载 `ClassConnector.exe` 后**双击**即可：
+
+1. 弹出 **「ClassConnector · 设置」** 图形窗口，服务在后台线程自动启动。
+2. 在窗口里设置：摄像头（本机枚举、分辨率、帧率、JPEG 画质）、播报语音与音效、班级名称、端口、空闲休眠、访问密码，以及**是否允许管理端切换摄像头**。
+3. 底部状态栏显示局域网地址，同网段任意浏览器打开该地址即进入管理端；点「打开管理端」也可直接打开本机页面。
+4. 退出时若设置了密码会要求输入；**删除文件夹即卸载**——不写注册表、不注册自启、不装系统 Python，数据全部在 `data/`。
+
+exe 由 [`.github/workflows/build-exe.yml`](.github/workflows/build-exe.yml) 在 Windows runner 上自动构建（PR 的 Checks / Release 资产均可下载），也可自行编译：
+
+```bat
+pip install -r requirements-build.txt
+python scripts/make_icons.py
+python scripts/build_exe.py        :: -> dist\ClassConnector.exe
+```
+
+源码环境下可直接 `python -m agent.desktop` 打开**同一个**设置窗口。详见 [桌面版说明](docs/DESKTOP.md)。
+
+### 0.2 绿色便携脚本（可选，需要 Python 3.8+）
+
+保留脚本方式供开发 / Linux / macOS 使用。解压 zip 后：
 
 | 系统 | 启动 |
 | --- | --- |
@@ -294,6 +314,7 @@ ClassConnector/
 
 ## 十一、相关文档
 
+- [桌面版 exe 使用与构建、摄像头权限](docs/DESKTOP.md)
 - [绿色便携版说明（不安装）](docs/PORTABLE.md)
 - [架构设计与数据流](docs/ARCHITECTURE.md)
 - [REST / WebSocket API 参考](docs/API.md)
