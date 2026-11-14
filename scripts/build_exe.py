@@ -23,9 +23,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def _force_utf8_stdio() -> None:
+    """Windows 中文控制台默认 cp1252 / gbk，中文输出会抛 UnicodeEncodeError。
+
+    本脚本的提示文字全部使用 ASCII（见下方），这里再兜一层，确保任何
+    第三方库 / 子进程写出的非 ASCII 文本也不会让构建中断。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="构建 ClassConnector 可执行文件")
-    parser.add_argument("--dist", default="dist", help="产物目录")
+    _force_utf8_stdio()
+    parser = argparse.ArgumentParser(description="Build the ClassConnector executable")
+    parser.add_argument("--dist", default="dist", help="输出目录")
     parser.add_argument("--work", default="build/pyinstaller", help="临时构建目录")
     parser.add_argument("--lite", action="store_true", help="跳过可选依赖（快速自检）")
     parser.add_argument("--python", default=sys.executable, help="用于构建的 Python")
@@ -33,11 +47,11 @@ def main() -> int:
 
     spec = ROOT / "ClassConnector.spec"
     if not spec.is_file():
-        print(f"[ERROR] 找不到 {spec}")
+        print(f"[ERROR] spec not found: {spec}")
         return 2
     icon = ROOT / "assets" / "icon.ico"
     if not icon.is_file():
-        print("图标不存在，先生成：python scripts/make_icons.py")
+        print("[ERROR] icon missing, run: python scripts/make_icons.py")
         return 2
 
     dist = (ROOT / args.dist).resolve()
@@ -46,6 +60,8 @@ def main() -> int:
     work.mkdir(parents=True, exist_ok=True)
 
     env = dict(os.environ)
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    env.setdefault("PYTHONUTF8", "1")
     if args.lite:
         env["CC_LITE"] = "1"
 
@@ -53,21 +69,21 @@ def main() -> int:
         args.python, "-m", "PyInstaller", "--noconfirm", "--clean",
         "--distpath", str(dist), "--workpath", str(work), str(spec),
     ]
-    print("构建命令:", " ".join(cmd))
+    print("COMMAND:", " ".join(cmd))
     rc = subprocess.call(cmd, cwd=str(ROOT), env=env)
     if rc != 0:
-        print(f"[ERROR] PyInstaller 失败，退出码 {rc}")
+        print(f"[ERROR] PyInstaller failed with exit code {rc}")
         return rc
 
     found = [p for p in sorted(dist.iterdir())
              if p.is_file() and p.name.startswith("ClassConnector")
              and not p.name.endswith((".zip", ".txt"))]
     if not found:
-        print("[ERROR] 未在产物目录找到可执行文件")
+        print("[ERROR] No executable found in the dist directory")
         return 3
     for path in found:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        print(f"产物: {path}  {path.stat().st_size} B  SHA256 {digest}")
+        print(f"OUTPUT: {path}  {path.stat().st_size} bytes  SHA256 {digest}")
     return 0
 
 

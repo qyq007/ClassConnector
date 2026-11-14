@@ -95,9 +95,9 @@ Content-Type: application/json
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/camera/config` | 当前画质配置 + 采集状态（后端、实测帧率、订阅数、错误） |
-| POST | `/api/camera/config` | 调整画质，参数自动收敛到合法范围 |
-| GET | `/api/camera/devices` | 枚举可用摄像头（最多探测 4 个）；无设备时返回测试画面项 |
+| GET | `/api/camera/config` | 当前画质配置 + 采集状态（后端、实测帧率、订阅数、错误），附 `camera_select_locked` |
+| POST | `/api/camera/config` | 调整画质，参数自动收敛到合法范围；**锁定状态下 `index` 被静默忽略** |
+| GET | `/api/camera/devices` | **默认只返回主机设置窗口选定的那一个摄像头**（`locked: true`）；主机显式放开后才枚举全部设备 |
 | GET | `/api/camera/snapshot` | 单帧 JPEG（`image/jpeg`）；若处于休眠会临时唤醒 |
 | GET | `/api/camera/stream` | **MJPEG 流** `multipart/x-mixed-replace; boundary=classconnector-frame` |
 
@@ -110,6 +110,23 @@ Content-Type: application/json
 | `height` | 240–2160 | 720 |
 | `fps` | 1–30 | 15 |
 | `quality` | 10–100 | 70 |
+
+> `index` 属于**主机特权**：只有教室电脑上的桌面设置窗口能修改。管理端在锁定状态下提交的 `index` 会被忽略。
+
+### 摄像头访问权限（v1.2.0 起）
+
+`camera.remote_select` 默认 `false`，**只能由教室电脑上的设置窗口修改**；任何网络接口都不能改这个开关，管理端也无法自行解锁。锁定状态下：
+
+- `GET /api/camera/devices` 只返回 `{"devices": [主机指定的那一个设备], "current": 0, "locked": true}`，不返回本机其它摄像头，也不暴露设备总数；
+- `POST /api/camera/config` 中的 `index` 被静默丢弃，响应附 `camera_select_locked: true` 与 `ignored_fields: ["index"]`；
+- `POST /api/config` 的 `camera` 白名单不含 `index` / `remote_select`；
+- WebSocket `camera_config` 消息同样过滤 `index`。
+
+```json
+{"ok": true, "config": {"index": 0, "quality": 62}, "camera_select_locked": true, "ignored_fields": ["index"]}
+```
+
+主机在设置窗口「摄像头 → 网络访问权限」勾选并保存后，`locked` 变为 `false`，管理端才会拿到完整设备列表并能切换设备。详见 [DESKTOP.md](DESKTOP.md)。
 
 ```bash
 curl "http://192.168.1.50:8420/api/camera/stream?token=xxx" -o stream.mjpg

@@ -153,7 +153,7 @@ python -m agent.install                # 重新安装并设置新密码
 
 这是 **v1.0.0 的已知问题**：`.bat` 使用了 UTF-8 中文 + LF 换行 + `chcp 65001`，中文 Windows 的 `cmd.exe` 按字节解析时会把命令拆碎（`echo`→`cho`、`errorlevel`→`orlevel`），`cd /d` 被吞掉导致工作目录没切换，进而找不到 `agent` 包。**v1.1.0 已修复**：全部 `.bat` 改为纯 ASCII + CRLF 并去掉 `chcp 65001`。
 
-- 请下载 **`ClassConnector-v1.1.0.zip`**，不要继续用 v1.0.0。
+- 请下载 **`ClassConnector.exe`**（推荐）或 `ClassConnector-v1.2.0.zip`，不要继续用 v1.0.0。
 - 若你要自己改 `.bat`：**不要写中文、不要改成 LF 换行、不要加 BOM**；中文说明放在 `.txt` / `.md` 里。
 
 **Q：不想安装到电脑里，能直接运行吗？**

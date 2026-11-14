@@ -17,6 +17,10 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 30
+    # Windows runner 默认 cp1252，Python 输出中文会抛 UnicodeEncodeError
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: '1'
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
