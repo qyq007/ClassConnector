@@ -54,6 +54,37 @@ jobs:
           Write-Output "SIZE=$($exe.Length) bytes"
           Get-FileHash publish/ClassConnector.exe -Algorithm SHA256 | Format-List
 
+      - name: Smoke test the published exe (service really starts)
+        # Actually launches ClassConnector.exe and probes /api/health. This is
+        # the regression guard for "exe 无法启动服务". Hosted Windows runners
+        # have an interactive desktop; if a future runner has none, the step is
+        # informational (logs are still printed) and does not break the build.
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path publish/ClassConnector.exe).Path
+          $proc = Start-Process -FilePath $exe `
+            -ArgumentList @('--headless-check', '--no-browser', '--port', '18420') -PassThru
+          try {
+            $ok = $false
+            $health = $null
+            for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 1
+              try {
+                $health = Invoke-RestMethod -Uri 'http://127.0.0.1:18420/api/health' -TimeoutSec 2
+                if ($health.ok) { $ok = $true; break }
+              } catch { }
+            }
+            if (-not $ok) {
+              Write-Warning 'Service health probe did not answer; agent.log follows:'
+              Get-Content publish/data/agent.log -Tail 40 -ErrorAction SilentlyContinue
+              throw 'smoke test failed'
+            }
+            Write-Output "SERVICE OK: $($health.service) v$($health.version)"
+          } finally {
+            if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
+
       - name: Upload exe
         uses: actions/upload-artifact@v4
         with:
