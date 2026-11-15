@@ -2,15 +2,22 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b1120">
+<meta name="description" content="ClassConnector 班级连接器 · 局域网摄像头、对讲、横幅通知与屏幕截图管理端">
 <title>ClassConnector · 班级连接器管理端</title>
+<!-- 与桌面 exe / 设置窗口完全一致的应用图标 -->
+<link rel="icon" type="image/png" href="./icon.png">
+<link rel="icon" href="./favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <span class="logo">CC</span>
+    <img class="logo" src="./icon.png" alt="ClassConnector">
     <div class="brand-text"><strong>ClassConnector</strong><small>班级连接器 · 管理端</small></div>
   </div>
   <div class="top-center">
@@ -129,7 +136,10 @@
                 <option value="25">25 fps</option><option value="30">30 fps</option>
               </select></label>
           </div>
-          <label class="field compact"><span>摄像头设备</span><select id="cameraDeviceSelect"></select></label>
+          <label class="field compact" id="cameraDeviceField"><span>摄像头设备</span><select id="cameraDeviceSelect"></select></label>
+          <div id="cameraLockHint" class="lock-hint" hidden>
+            【锁定】摄像头由教室电脑上的 <b>ClassConnector 设置窗口</b> 指定，管理端只能使用这一路画面，无法查看或切换本机其他摄像头。
+          </div>
           <button id="btnApplyQuality" class="btn btn-primary btn-block">应用画质设置</button>
         </div>
 

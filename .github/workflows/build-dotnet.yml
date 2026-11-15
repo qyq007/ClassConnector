@@ -1,0 +1,70 @@
+name: Build .NET Windows App
+
+# Real Visual Studio / MSBuild toolchain on a Windows runner.
+# Produces the same single-file exe as "Build > Publish" in VS 2022.
+on:
+  push:
+    branches: [main, 'feat/**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore ClassConnector.sln
+
+      - name: Build (Debug + Release)
+        run: |
+          dotnet build ClassConnector.sln -c Debug --no-restore
+          dotnet build ClassConnector.sln -c Release --no-restore
+
+      - name: Unit tests
+        run: dotnet test src/ClassConnector.Tests/ClassConnector.Tests.csproj -c Release --no-build --verbosity normal
+
+      - name: Publish single-file exe
+        run: >
+          dotnet publish src/ClassConnector.App/ClassConnector.App.csproj
+          -c Release -r win-x64 --self-contained true
+          -o publish
+
+      - name: Verify artifact
+        shell: pwsh
+        run: |
+          $exe = Get-Item publish/ClassConnector.exe
+          if (-not $exe -or $exe.Length -lt 5MB) { throw "exe missing or too small" }
+          Write-Output "SIZE=$($exe.Length) bytes"
+          Get-FileHash publish/ClassConnector.exe -Algorithm SHA256 | Format-List
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClassConnector-dotnet-exe
+          path: publish/ClassConnector.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach to Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/ClassConnector.exe
+          fail_on_unmatched_files: true
