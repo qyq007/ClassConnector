@@ -19,6 +19,7 @@ public sealed class AppBootstrapper : ApplicationContext
     private readonly ServerContext _context;
     private MainForm? _form;
     private TrayHost? _tray;
+    private SynchronizationContext? _uiContext;
     private volatile bool _exitRequested;
 
     public AppConfigStore Store { get; }
@@ -66,7 +67,17 @@ public sealed class AppBootstrapper : ApplicationContext
     public void Initialize(StartupOptions options)
     {
         _form = new MainForm(this);
-        MainForm = _form;   // keeps the WinForms message loop alive
+
+        // Deliberately DO NOT set ApplicationContext.MainForm.
+        // Application.Run(ApplicationContext) forces MainForm.Visible = true,
+        // which would pop the window back up in tray-only (minimized) mode.
+        // With no MainForm the loop runs until our explicit ExitThread().
+        //
+        // Install the WinForms sync context before the first await so service
+        // startup continuations and tray callbacks always stay on the UI thread.
+        if (SynchronizationContext.Current is null)
+            SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
+        _uiContext = SynchronizationContext.Current;
 
         var cfg = Store.Snapshot();
         _tray = new TrayHost(
@@ -123,9 +134,13 @@ public sealed class AppBootstrapper : ApplicationContext
 
     public void ShowSettings()
     {
+        if (_uiContext is not null && SynchronizationContext.Current != _uiContext)
+        {
+            _uiContext.Post(_ => ShowSettings(), null);
+            return;
+        }
         var form = _form;
         if (form is null) return;
-        if (form.InvokeRequired) { form.BeginInvoke(ShowSettings); return; }
         form.Show();
         form.ShowInTaskbar = true;
         form.WindowState = FormWindowState.Normal;
@@ -165,10 +180,11 @@ public sealed class AppBootstrapper : ApplicationContext
     public void RequestExit()
     {
         if (_exitRequested) return;
-        var form = _form;
-        if (form is not null && form.IsHandleCreated && form.InvokeRequired)
+        // May be called from the web API thread: marshal the password dialog
+        // back to the UI thread (no reliance on the form having a handle yet).
+        if (_uiContext is not null && SynchronizationContext.Current != _uiContext)
         {
-            form.BeginInvoke(RequestExit);
+            _uiContext.Post(_ => RequestExit(), null);
             return;
         }
 
