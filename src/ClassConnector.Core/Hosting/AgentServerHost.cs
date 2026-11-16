@@ -1,3 +1,4 @@
+using ClassConnector.Core.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
@@ -21,6 +22,7 @@ public sealed class AgentServerHost : IAsyncDisposable
 
     public string LastError { get; private set; } = "";
     public string Url { get; private set; } = "";
+    public string BindAddress { get; private set; } = "";
     public bool IsRunning => _app is not null && !_stopping && string.IsNullOrEmpty(LastError)
                              && !(_shutdownTask?.IsCompleted ?? false);
 
@@ -29,11 +31,13 @@ public sealed class AgentServerHost : IAsyncDisposable
         await StopAsync();
         LastError = "";
         _stopping = false;
-        Url = $"http://{host}:{port}";
+        var listenHost = AppConfig.NormalizeHost(host);
+        BindAddress = $"{listenHost}:{port}";
+        Url = $"http://{listenHost}:{port}";
 
         try
         {
-            _app = AgentServer.CreateApp(_context, host, port);
+            _app = AgentServer.CreateApp(_context, listenHost, port);
             await _app.StartAsync(ct);              // throws e.g. when the port is occupied
             _shutdownTask = _app.WaitForShutdownAsync(ct);
             StartIdleWatch(ct);

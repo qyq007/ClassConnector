@@ -82,6 +82,23 @@ public class AppConfigStoreTests : IDisposable
     }
 
     [Fact]
+    public void BlankOrMalformedHost_NormalizesToAllInterfaces()
+    {
+        File.WriteAllText(_path, "{\"Host\":\"\"}");
+        var store = new AppConfigStore(_path);
+        Assert.Equal("0.0.0.0", store.Snapshot().Host);
+
+        File.WriteAllText(_path, "{\"Host\":\"http://192.168.1.9:8420/manager\"}");
+        store = new AppConfigStore(_path);
+        Assert.Equal("192.168.1.9", store.Snapshot().Host);
+
+        // Legacy loopback config must not silently disable LAN access.
+        File.WriteAllText(_path, "{\"Host\":\"127.0.0.1\"}");
+        store = new AppConfigStore(_path);
+        Assert.Equal("0.0.0.0", store.Snapshot().Host);
+    }
+
+    [Fact]
     public void CorruptedConfig_FallsBackToDefaults()
     {
         File.WriteAllText(_path, "{ this is not json");

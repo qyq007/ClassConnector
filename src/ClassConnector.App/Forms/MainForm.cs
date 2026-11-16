@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Net;
 using System.Net.Sockets;
 using System.Windows.Forms;
+using ClassConnector.App.Windows;
 using ClassConnector.Core.Camera;
 using ClassConnector.Core.Configuration;
 using Timer = System.Windows.Forms.Timer;
@@ -37,6 +38,7 @@ public sealed class MainForm : Form
     private readonly CheckBox _urgentAlert = Check("紧急通知先播放独立警报音（与普通通知区分）", 12, 24, 620);
     private readonly CheckBox _requireAuth = Check("管理端需要密码登录（所有管理操作均需验证）", 12, 24, 620);
     private readonly CheckBox _startMinimized = Check("启动时最小化到系统托盘（后台运行）", 12, 24, 620);
+    private readonly CheckBox _autoStart = Check("开机自动启动（当前用户，可随时在此关闭）", 12, 52, 620);
     private readonly TextBox _room = Input(24, 260);
     private readonly TextBox _port = Input(24, 90);
     private readonly TextBox _idle = Input(24, 90);
@@ -178,17 +180,21 @@ public sealed class MainForm : Form
         var save = Btn("保存设置", 100);
         save.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         save.Click += (_, _) => SaveSettings();
+        var restartApp = Btn("重启程序", 90);
+        restartApp.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        restartApp.Click += (_, _) => _app.RequestRestart();
         var exitBtn = Btn("退出", 90);
         exitBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         exitBtn.Click += (_, _) => _app.RequestExit();
-        buttons.Controls.AddRange(new Control[] { open, restart, save, exitBtn });
+        buttons.Controls.AddRange(new Control[] { open, restart, save, restartApp, exitBtn });
         buttons.Resize += (_, _) =>
         {
             exitBtn.Left = buttons.Width - exitBtn.Width;
-            save.Left = buttons.Width - exitBtn.Width - save.Width - 8;
+            restartApp.Left = exitBtn.Left - restartApp.Width - 8;
+            save.Left = restartApp.Left - save.Width - 8;
         };
-        // initial placement
-        exitBtn.Left = 640; save.Left = 532;
+        // initial placement (Resize recomputes these on first layout)
+        exitBtn.Left = 640; restartApp.Left = 542; save.Left = 434;
 
         grid.Controls.Add(header, 0, 0);
         grid.Controls.Add(tabs, 0, 1);
@@ -326,15 +332,23 @@ public sealed class MainForm : Form
         security.Controls.AddRange(new Control[] { _requireAuth, setPassword, note });
         AddRow(page, security, 132);
 
-        var startup = Group("启动方式", 76);
+        var startup = Group("启动方式", 104);
         startup.Controls.Add(_startMinimized);
-        AddRow(page, startup, 84);
+        startup.Controls.Add(_autoStart);
+        AddRow(page, startup, 112);
 
-        var lan = Group("局域网访问地址", 108);
+        var lan = Group("局域网访问地址", 152);
         _addresses.ForeColor = Accent;
-        _addresses.Height = 70;
-        lan.Controls.Add(_addresses);
-        AddRow(page, lan, 116);
+        _addresses.Height = 52;
+        _addresses.Top = 20;
+        var allowLan = Btn("放行端口到局域网（需管理员）", 240);
+        allowLan.Left = 12; allowLan.Top = 78;
+        allowLan.Click += (_, _) => AllowLan();
+        var lanHint = Txt("其他设备打不开管理页时，先点上方按钮放行 Windows 防火墙；路由器隔离 / 访客网络也会阻止访问。",
+                          12, 116, 620);
+        lanHint.Height = 28; lanHint.ForeColor = Muted;
+        lan.Controls.AddRange(new Control[] { _addresses, allowLan, lanHint });
+        AddRow(page, lan, 160);
 
         var portable = Txt("同一局域网内的电脑 / 手机浏览器打开上面的地址即可进入管理端。本程序不写注册表、不安装系统服务，删除整个文件夹即完成卸载。",
                            12, 8, 620);
@@ -370,6 +384,7 @@ public sealed class MainForm : Form
         _idle.Text = cfg.IdleTimeoutSeconds.ToString();
         _requireAuth.Checked = cfg.RequireAuth;
         _startMinimized.Checked = cfg.StartMinimized;
+        _autoStart.Checked = WindowsAutoStart.IsEnabled;
 
         RefreshDevices();
         UpdatePlayerStatus();
@@ -436,6 +451,15 @@ public sealed class MainForm : Form
             var updated = _app.Store.Snapshot();
             _app.Camera.ApplyConfig(updated.Camera);
             if (updated.RequireAuth) _app.RevokeTokens();
+            try
+            {
+                WindowsAutoStart.SetEnabled(_autoStart.Checked);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "开机自启设置未生效：" + ex.Message, "开机自启",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
             if (updated.Port != oldPort) _ = _app.RestartServiceAsync();
 
             MessageBox.Show(this,
@@ -446,6 +470,33 @@ public sealed class MainForm : Form
         catch (Exception ex)
         {
             MessageBox.Show(this, ex.Message, "设置无效", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void AllowLan()
+    {
+        var port = _app.Store.Snapshot().Port;
+        if (!OperatingSystem.IsWindows())
+        {
+            MessageBox.Show(this, "当前不是 Windows，请手动在防火墙中放行 TCP 端口 " + port + "。",
+                "局域网访问", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        try
+        {
+            if (WindowsFirewall.AllowInbound(port))
+                MessageBox.Show(this, $"已添加防火墙入站规则，允许局域网访问 TCP {port}。",
+                    "局域网访问", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            else
+                MessageBox.Show(this,
+                    "未能添加防火墙规则：可能取消了管理员授权，或同名规则已存在。\n" +
+                    "请到 Windows 安全中心 → 防火墙 → 入站规则确认。",
+                    "局域网访问", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "放行失败：" + ex.Message, "局域网访问",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 

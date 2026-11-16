@@ -37,10 +37,11 @@ Content-Type: application/json
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/health` | 健康检查：版本、教室名、IP、端口、休眠状态、是否设密码（**匿名**） |
-| GET | `/api/status` | 汇总：设备、运行时、摄像头、音频、屏幕、横幅、TTS、配置、能力集 |
+| GET | `/api/health` | 健康检查：版本、教室名、IP、端口、实际监听 `host`/`bind`、`lan_urls`、休眠状态、是否设密码（**匿名**） |
+| GET | `/api/status` | 汇总：设备（含 `bind`/`lan_urls`）、运行时、摄像头、音频、屏幕、横幅、TTS、`autostart`、配置、能力集 |
 | GET | `/api/logs?limit=100` | 最近日志（最多 500 条） |
-| GET | `/api/platform` | 运行平台信息；`autostart` 恒为 `portable`（绿色版不自启） |
+| GET | `/api/platform` | 运行平台信息；`autostart.enabled` 反映当前用户自启是否开启，`method` 为 `registry-run`（桌面版）或 `portable`（纯 Core 测试宿主） |
+| POST | `/api/autostart` | `{"enabled": true/false}` 开启或关闭当前用户开机自启；桌面版由 App 提供实现 |
 | GET | `/api/config` | 可公开配置（已剔除 `password_salt` / `password_hash`） |
 | POST | `/api/config` | 更新教室名、设备名、空闲休眠、画质、TTS、登录开关等；**不接受 `camera.index` / `camera.remote_select`** |
 | POST | `/api/password/change` | 校验旧密码后改密，并使所有令牌失效 |

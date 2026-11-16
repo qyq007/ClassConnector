@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
@@ -29,6 +30,42 @@ internal static class ApiHelpers
             }
             catch (Exception) { return "127.0.0.1"; }
         }
+    }
+
+    /// <summary>All usable LAN URLs, derived from live NICs rather than a UDP
+    /// probe (which fails on offline machines and hides the real address).</summary>
+    public static string[] LanUrls(int port)
+    {
+        var ips = new List<string>();
+        try
+        {
+            foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.OperationalStatus != OperationalStatus.Up) continue;
+                foreach (var info in nic.GetIPProperties().UnicastAddresses)
+                    if (info.Address.AddressFamily == AddressFamily.InterNetwork
+                        && !info.Address.ToString().StartsWith("127."))
+                        ips.Add(info.Address.ToString());
+            }
+        }
+        catch (Exception) { /* NIC enumeration is best effort */ }
+        try
+        {
+            foreach (var address in Dns.GetHostAddresses(Dns.GetHostName()))
+                if (address.AddressFamily == AddressFamily.InterNetwork
+                    && !address.ToString().StartsWith("127."))
+                    ips.Add(address.ToString());
+        }
+        catch (Exception) { /* no DNS */ }
+        try
+        {
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            socket.Connect("223.5.5.5", 80);
+            var ip = ((IPEndPoint)socket.LocalEndPoint!).Address.ToString();
+            if (!ip.StartsWith("127.")) ips.Add(ip);
+        }
+        catch (Exception) { /* offline */ }
+        return ips.Distinct().Select(ip => $"http://{ip}:{port}/").ToArray();
     }
 
     public static int QueryInt(HttpContext http, string key, int fallback) =>

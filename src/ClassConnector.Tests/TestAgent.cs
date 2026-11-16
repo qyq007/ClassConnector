@@ -34,7 +34,10 @@ internal sealed class TestAgent : IDisposable
     public string BaseUrl => $"http://127.0.0.1:{Port}";
     private readonly string _configPath;
 
-    public TestAgent(IReadOnlyList<string>? names = null)
+    public TestAgent(
+        IReadOnlyList<string>? names = null,
+        Func<bool>? autoStartEnabled = null,
+        Action<bool>? setAutoStart = null)
     {
         _configPath = Path.Combine(Path.GetTempPath(),
             "cc-test-" + Guid.NewGuid().ToString("N") + ".json");
@@ -53,9 +56,12 @@ internal sealed class TestAgent : IDisposable
             DeviceSize = _ => (0, 0),
             DisplayCount = () => 1,
             Version = "2.0.0",
+            AutoStartEnabled = autoStartEnabled,
+            SetAutoStart = setAutoStart,
         };
         Host = new AgentServerHost(Context);
         Port = FreePort();
+        Store.Update(cfg => cfg.Port = Port);
     }
 
     public Task<bool> StartAsync() => Host.StartAsync("127.0.0.1", Port);

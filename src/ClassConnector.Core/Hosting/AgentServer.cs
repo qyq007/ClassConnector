@@ -36,7 +36,9 @@ public static class AgentServer
         builder.Logging.ClearProviders();
         builder.Logging.AddProvider(new FileLoggerProvider(AppPaths.LogFile));
         builder.Logging.SetMinimumLevel(LogLevel.Information);
-        builder.WebHost.UseSetting(WebHostDefaults.ServerUrlsKey, $"http://{host}:{port}");
+        // UseUrls wins over ASPNETCORE_URLS / launch profiles. Normalizing the
+        // host prevents "http://:port" (blank host) from killing the bind.
+        builder.WebHost.UseUrls($"http://{AppConfig.NormalizeHost(host)}:{port}");
         builder.Services.AddSingleton(context);
 
         var manager = AppPaths.ManagerDirectory;
@@ -109,6 +111,9 @@ public static class AgentServer
                 room = cfg.RoomName,
                 ip = ApiHelpers.GetLocalIp(),
                 port = cfg.Port,
+                host = AppConfig.NormalizeHost(cfg.Host),
+                bind = $"{AppConfig.NormalizeHost(cfg.Host)}:{cfg.Port}",
+                lan_urls = ApiHelpers.LanUrls(cfg.Port),
                 sleeping = ctx.Runtime.Sleeping,
                 auth_required = cfg.RequireAuth,
                 has_password = ctx.Store.HasPassword,
@@ -131,6 +136,8 @@ public static class AgentServer
                     room = cfg.RoomName,
                     ip = ApiHelpers.GetLocalIp(),
                     port = cfg.Port,
+                    bind = $"{AppConfig.NormalizeHost(cfg.Host)}:{cfg.Port}",
+                    lan_urls = ApiHelpers.LanUrls(cfg.Port),
                     system = Environment.OSVersion.VersionString,
                     os = Environment.OSVersion.Platform.ToString(),
                     runtime = ".NET 8",
@@ -141,7 +148,11 @@ public static class AgentServer
                 screen = new { displays = ApiHelpers.Displays(ctx), mss = ctx.ScreenCapture is not null, pillow = true },
                 banner = new { current = ctx.Banner.Current, count = ctx.Banner.History(200).Count },
                 tts = ApiHelpers.TtsStatus(ctx),
-                autostart = new { enabled = false, method = "portable" },
+                autostart = new
+                {
+                    enabled = ctx.AutoStartEnabled?.Invoke() ?? false,
+                    method = ctx.AutoStartEnabled is null ? "portable" : "registry-run",
+                },
                 config = ctx.Store.Public(),
                 capabilities = new
                 {
@@ -167,12 +178,37 @@ public static class AgentServer
 
         app.MapGet("/api/platform", (ServerContext ctx) => new
         {
-            autostart = new { enabled = false, method = "portable" },
+            autostart = new
+            {
+                enabled = ctx.AutoStartEnabled?.Invoke() ?? false,
+                method = ctx.AutoStartEnabled is null ? "portable" : "registry-run",
+            },
             system = Environment.OSVersion.Platform.ToString(),
             release = Environment.OSVersion.VersionString,
             runtime = ".NET 8",
             project_root = AppPaths.BaseDirectory,
             background = false,
+        });
+
+        app.MapPost("/api/autostart", async (HttpContext http, ServerContext ctx) =>
+        {
+            if (ctx.SetAutoStart is null)
+                return Results.Json(new { detail = "当前平台不支持开机自启" }, statusCode: 400);
+            var body = await ApiHelpers.Body(http);
+            var enabled = ApiHelpers.Bool(body, "enabled", false);
+            try
+            {
+                ctx.SetAutoStart(enabled);
+                return Results.Json(new
+                {
+                    ok = true,
+                    enabled = ctx.AutoStartEnabled?.Invoke() ?? enabled,
+                });
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { detail = ex.Message }, statusCode: 500);
+            }
         });
 
         // ------------------------------------------------------------ config

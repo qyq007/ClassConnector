@@ -19,6 +19,7 @@ public sealed class TrayHost : IDisposable
         Action showSettings,
         Action openManager,
         Action restartService,
+        Action restartApp,
         Action exit,
         int port)
     {
@@ -28,11 +29,12 @@ public sealed class TrayHost : IDisposable
         var menu = new ContextMenuStrip();
         menu.Items.Add(_statusItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("打开设置窗口", null, (_, _) => showSettings()));
+        menu.Items.Add(new ToolStripMenuItem("打开设置窗口（需管理密码）", null, (_, _) => showSettings()));
         menu.Items.Add(new ToolStripMenuItem("打开管理端", null, (_, _) => openManager()));
         menu.Items.Add(new ToolStripMenuItem("重启服务", null, (_, _) => restartService()));
+        menu.Items.Add(new ToolStripMenuItem("重启程序（需管理密码）", null, (_, _) => restartApp()));
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("退出（需密码）", null, (_, _) => exit()));
+        menu.Items.Add(new ToolStripMenuItem("退出（需管理密码）", null, (_, _) => exit()));
 
         _icon = new NotifyIcon
         {

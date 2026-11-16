@@ -63,6 +63,24 @@ public sealed class AppConfig
 
     public static AppConfig CreateDefault() => new();
 
+    /// <summary>
+    /// A blank or malformed listen host must never produce "http://:port",
+    /// which makes Kestrel fail to bind and the LAN service silently disappear.
+    /// </summary>
+    public static string NormalizeHost(string? host)
+    {
+        if (string.IsNullOrWhiteSpace(host)) return "0.0.0.0";
+        var value = host.Trim();
+        if (value.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            value = value[7..].Split('/')[0];
+        if (value.Contains(':')) value = value[..value.IndexOf(':')];
+        if (string.IsNullOrWhiteSpace(value)) return "0.0.0.0";
+        // This is a classroom agent: a leftover loopback-only value would make
+        // the LAN manager unreachable, which defeats the whole product.
+        if (value is "127.0.0.1" or "localhost" or "::1") return "0.0.0.0";
+        return value;
+    }
+
     public static readonly string[] Resolutions = { "320x240", "640x480", "1280x720", "1920x1080" };
     public static readonly int[] FpsChoices = { 5, 10, 15, 20, 25, 30 };
 

@@ -69,7 +69,7 @@ public sealed class AppConfigStore
         c.Camera.Fps = Math.Clamp(c.Camera.Fps, 1, 30);
         c.Camera.Quality = Math.Clamp(c.Camera.Quality, 10, 100);
         c.RoomName ??= "未命名班级";
-        c.Host ??= "0.0.0.0";
+        c.Host = AppConfig.NormalizeHost(c.Host);
         c.DeviceName ??= "";
     }
 

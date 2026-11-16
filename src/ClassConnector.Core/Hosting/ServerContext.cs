@@ -92,6 +92,10 @@ public sealed class ServerContext
     /// <summary>Called after a password-verified exit request from the web UI.</summary>
     public Action? RequestExit { get; init; }
 
+    /// <summary>Windows startup-folder / Run-key integration, provided by the desktop app.</summary>
+    public Func<bool>? AutoStartEnabled { get; init; }
+    public Action<bool>? SetAutoStart { get; init; }
+
     public string Version { get; init; } = "2.0.0";
     private int _spoken;
     public int SpokenCount => Volatile.Read(ref _spoken);

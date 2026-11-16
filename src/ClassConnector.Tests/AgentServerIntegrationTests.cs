@@ -180,6 +180,45 @@ public class AgentServerIntegrationTests
     }
 
     [Fact]
+    public async Task Health_ExposesBindAddressAndLanUrls()
+    {
+        using var agent = new TestAgent();
+        // A launched exe listens on all interfaces, not loopback only.
+        Assert.True(await agent.Host.StartAsync("0.0.0.0", agent.Port), agent.Host.LastError);
+        Assert.Equal($"0.0.0.0:{agent.Port}", agent.Host.BindAddress);
+
+        using var client = new HttpClient { BaseAddress = new Uri(agent.BaseUrl) };
+        using var doc = await client.GetFromJsonAsync<JsonDocument>("/api/health");
+        var root = doc!.RootElement;
+        Assert.Equal("0.0.0.0", root.GetProperty("host").GetString());
+        Assert.Equal($"0.0.0.0:{agent.Port}", root.GetProperty("bind").GetString());
+        foreach (var url in root.GetProperty("lan_urls").EnumerateArray())
+            Assert.EndsWith($":{agent.Port}/", url.GetString());
+    }
+
+    [Fact]
+    public async Task Autostart_Api_TogglesAndReportsState()
+    {
+        var enabled = false;
+        using var agent = new TestAgent(
+            autoStartEnabled: () => enabled,
+            setAutoStart: value => enabled = value);
+        Assert.True(await agent.StartAsync(), agent.Host.LastError);
+        using var client = new HttpClient { BaseAddress = new Uri(agent.BaseUrl) };
+
+        using var before = await client.GetFromJsonAsync<JsonDocument>("/api/platform");
+        Assert.False(before!.RootElement.GetProperty("autostart").GetProperty("enabled").GetBoolean());
+
+        using var response = await client.PostAsJsonAsync("/api/autostart", new { enabled = true });
+        using var doc = await response.Content.ReadFromJsonAsync<JsonDocument>();
+        Assert.True(doc!.RootElement.GetProperty("ok").GetBoolean());
+        Assert.True(doc.RootElement.GetProperty("enabled").GetBoolean());
+
+        using var after = await client.GetFromJsonAsync<JsonDocument>("/api/status");
+        Assert.True(after!.RootElement.GetProperty("autostart").GetProperty("enabled").GetBoolean());
+    }
+
+    [Fact]
     public async Task TtsVoices_IncludeChineseDisplayNames()
     {
         using var agent = new TestAgent();
