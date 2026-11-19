@@ -1,0 +1,73 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Windows desktop app. Open ClassConnector.sln in Visual Studio 2022:
+      F5                 -> debug the settings window + embedded service
+      Build > Publish    -> single-file ClassConnector.exe (no .NET install needed)
+    EnableWindowsTargeting lets CI / non-Windows build agents compile win-x64.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>ClassConnector.App</RootNamespace>
+    <AssemblyName>ClassConnector</AssemblyName>
+    <ApplicationIcon>../../assets/icon.ico</ApplicationIcon>
+
+    <!-- One self-contained exe: no Python, no runtime install, no installer. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ClassConnector.Core/ClassConnector.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- WMI / VFW camera friendly names + OpenCV capture. -->
+    <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="OpenCvSharp4" Version="4.10.0.20240616" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20240616" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The web management UI is shipped inside the exe / next to it. -->
+    <!--
+      CopyToPublishDirectory must be explicit: the SDK drops .ico files from
+      ComputeFilesToPublish (they are treated as Win32 icon resources), but the
+      browser favicon and the tray icon must ship as real files next to the exe.
+    -->
+    <Content Include="../../manager/**/*"
+             Link="manager/%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../assets/icon.ico" Link="assets/icon.ico"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../assets/icon.png" Link="assets/icon.png"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    The SDK filters .ico out of ResolvedFileToPublish (Win32 resource handling),
+    so CopyToPublishDirectory alone is not enough. Copy them explicitly after
+    Publish: favicon.ico (browser) and icon.ico (tray) must sit beside the exe.
+  -->
+  <ItemGroup>
+    <IconPublishFile Include="../../manager/favicon.ico">
+      <TargetPath>manager/favicon.ico</TargetPath>
+    </IconPublishFile>
+    <IconPublishFile Include="../../assets/icon.ico">
+      <TargetPath>assets/icon.ico</TargetPath>
+    </IconPublishFile>
+  </ItemGroup>
+  <Target Name="CopyIconResourcesToPublish" AfterTargets="Publish">
+    <Copy SourceFiles="@(IconPublishFile)"
+          DestinationFiles="@(IconPublishFile->'$(PublishDir)%(TargetPath)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

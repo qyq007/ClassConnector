@@ -1,0 +1,16 @@
+{
+  "profiles": {
+    "ClassConnector (Debug)": {
+      "commandName": "Project",
+      "commandLineArgs": "--no-browser"
+    },
+    "ClassConnector (Tray only)": {
+      "commandName": "Project",
+      "commandLineArgs": "--minimized --no-browser"
+    },
+    "ClassConnector (Service only)": {
+      "commandName": "Project",
+      "commandLineArgs": "--no-browser --no-service"
+    }
+  }
+}

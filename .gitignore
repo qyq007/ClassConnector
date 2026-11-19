@@ -35,3 +35,17 @@ htmlcov/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# .NET / Visual Studio 2022
+bin/
+obj/
+.vs/
+*.user
+*.userosscache
+*.suo
+publish/
+TestResults/
+*.nupkg
+# 绿色版运行时数据（exe 同目录 data/，含密码哈希）
+data/
+

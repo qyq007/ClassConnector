@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Platform-neutral core: configuration, camera pipeline, ASP.NET Core service.
+    This project targets plain net8.0, so `dotnet test` and even the HTTP API
+    can be exercised on Linux/macOS while the Windows UI lives in .App.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>ClassConnector.Core</RootNamespace>
+    <AssemblyName>ClassConnector.Core</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

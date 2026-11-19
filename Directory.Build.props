@@ -1,0 +1,26 @@
+<Project>
+  <!--
+    Shared MSBuild settings for every project in ClassConnector.sln.
+    Kept deliberately permissive: warnings never break the build, so that
+    opening the solution in Visual Studio and pressing F5 just works.
+  -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors></WarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <Company>ClassConnector</Company>
+    <Product>ClassConnector</Product>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Keep publish output clean: symbols are embedded, no loose .pdb files. -->
+    <DebugType>embedded</DebugType>
+    <!-- Platform-compatibility warnings are expected: the Windows-only
+         camera/tray code is guarded by OperatingSystem.IsWindows(). -->
+    <NoWarn>$(NoWarn);CA1416;NETSDK1201;NETSDK1138</NoWarn>
+  </PropertyGroup>
+</Project>

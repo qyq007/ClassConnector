@@ -1,0 +1,108 @@
+name: Build .NET Windows App
+
+# Real Visual Studio / MSBuild toolchain on a Windows runner.
+# Produces the same single-file exe as "Build > Publish" in VS 2022.
+on:
+  push:
+    branches: [main, 'feat/**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore ClassConnector.sln
+
+      - name: Build (Debug + Release)
+        run: |
+          dotnet build ClassConnector.sln -c Debug --no-restore
+          dotnet build ClassConnector.sln -c Release --no-restore
+
+      - name: Unit tests
+        run: dotnet test src/ClassConnector.Tests/ClassConnector.Tests.csproj -c Release --no-build --verbosity normal
+
+      - name: Publish single-file exe
+        run: >
+          dotnet publish src/ClassConnector.App/ClassConnector.App.csproj
+          -c Release -r win-x64 --self-contained true
+          -o publish
+
+      - name: Verify artifact
+        shell: pwsh
+        run: |
+          $exe = Get-Item publish/ClassConnector.exe
+          if (-not $exe -or $exe.Length -lt 5MB) { throw "exe missing or too small" }
+          Write-Output "SIZE=$($exe.Length) bytes"
+          Get-FileHash publish/ClassConnector.exe -Algorithm SHA256 | Format-List
+
+      - name: Smoke test the published exe (service + manager page)
+        # Launches ClassConnector.exe, probes /api/health AND fetches GET / to
+        # confirm the browser manager page is actually served. Guards both
+        # "exe 无法启动服务" and "浏览器打不开管理端 (404)". Informational on
+        # runners without an interactive desktop; logs are always printed.
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path publish/ClassConnector.exe).Path
+          $proc = Start-Process -FilePath $exe `
+            -ArgumentList @('--headless-check', '--no-browser', '--port', '18420') -PassThru
+          try {
+            $ok = $false
+            $health = $null
+            for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 1
+              try {
+                $health = Invoke-RestMethod -Uri 'http://127.0.0.1:18420/api/health' -TimeoutSec 2
+                if ($health.ok) { $ok = $true; break }
+              } catch { }
+            }
+            if (-not $ok) {
+              Write-Warning 'Service health probe did not answer; agent.log follows:'
+              Get-Content publish/data/agent.log -Tail 40 -ErrorAction SilentlyContinue
+              throw 'smoke test failed: service did not start'
+            }
+            Write-Output "SERVICE OK: $($health.service) v$($health.version)"
+
+            # The 404 regression: /api/health answers but GET / is empty.
+            $page = Invoke-WebRequest -Uri 'http://127.0.0.1:18420/' -TimeoutSec 5
+            if ($page.StatusCode -ne 200 -or $page.Content.Length -lt 200) {
+              throw "manager page not served: HTTP $($page.StatusCode) len=$($page.Content.Length)"
+            }
+            Write-Output "MANAGER PAGE OK: HTTP $($page.StatusCode) len=$($page.Content.Length)"
+          } finally {
+            if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClassConnector-dotnet-exe
+          path: publish/ClassConnector.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach to Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/ClassConnector.exe
+          fail_on_unmatched_files: true
