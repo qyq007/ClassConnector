@@ -74,6 +74,7 @@
 ### 仍然可能遇到的问题
 
 - **端口被占用**：状态栏显示「■ 启动失败」并给出原因；在「网络与安全」页改端口后会自动重启服务。
+- **浏览器打开 `http://设备IP:8420` 是空白 / 404，但 `/api/health` 能通**：曾因只设了 `WebRootPath` 而没有同步 `WebRootFileProvider`，导致 `UseStaticFiles` 指向默认 `wwwroot`，管理页返回 404。现已同时设置 `PhysicalFileProvider(manager)`，并有回归测试 + CI 冒烟（除 `/api/health` 外还会抓取 `GET /` 验证页面非空）。
 - **局域网其他设备连不上**：服务固定监听 `0.0.0.0`（配置里的空值 / `127.0.0.1` 会自动纠正），先到「网络与安全 → 局域网访问地址」点 **「放行端口到局域网（需管理员）」** 添加入站规则；若仍不通，检查路由器是否开启了 AP/访客隔离。可用地址在状态栏与该页列出，`/api/health` 也返回 `bind` 与 `lan_urls` 便于核对。
 - **NuGet 还原失败**：需要能访问 `api.nuget.org`；VS 里「工具 → NuGet 包管理器 → 还原」重试。
 - **OpenCV native dll 缺失**：`OpenCvSharp4.runtime.win` 已随包发布；单文件模式会自解压到临时目录。若杀毒软件拦截，将文件夹加入白名单。

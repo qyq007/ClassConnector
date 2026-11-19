@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 
 namespace ClassConnector.Core.Hosting;
@@ -24,7 +25,8 @@ public static class AgentServer
 {
     private const string Boundary = "classconnector-frame";
 
-    public static WebApplication CreateApp(ServerContext context, string host, int port)
+    public static WebApplication CreateApp(ServerContext context, string host, int port,
+        string? managerDirectory = null)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -41,8 +43,16 @@ public static class AgentServer
         builder.WebHost.UseUrls($"http://{AppConfig.NormalizeHost(host)}:{port}");
         builder.Services.AddSingleton(context);
 
-        var manager = AppPaths.ManagerDirectory;
-        if (Directory.Exists(manager)) builder.Environment.WebRootPath = manager;
+        var manager = managerDirectory ?? AppPaths.ManagerDirectory;
+        if (Directory.Exists(manager))
+        {
+            // Setting WebRootPath alone is NOT enough: UseStaticFiles /
+            // UseDefaultFiles / MapFallbackToFile all read WebRootFileProvider,
+            // which is otherwise left pointing at the default (missing) wwwroot.
+            // That made GET / return 404 even though the API answered on the LAN.
+            builder.Environment.WebRootPath = manager;
+            builder.Environment.WebRootFileProvider = new PhysicalFileProvider(manager);
+        }
 
         var app = builder.Build();
         app.Lifetime.ApplicationStarted.Register(() =>

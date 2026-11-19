@@ -54,11 +54,11 @@ jobs:
           Write-Output "SIZE=$($exe.Length) bytes"
           Get-FileHash publish/ClassConnector.exe -Algorithm SHA256 | Format-List
 
-      - name: Smoke test the published exe (service really starts)
-        # Actually launches ClassConnector.exe and probes /api/health. This is
-        # the regression guard for "exe 无法启动服务". Hosted Windows runners
-        # have an interactive desktop; if a future runner has none, the step is
-        # informational (logs are still printed) and does not break the build.
+      - name: Smoke test the published exe (service + manager page)
+        # Launches ClassConnector.exe, probes /api/health AND fetches GET / to
+        # confirm the browser manager page is actually served. Guards both
+        # "exe 无法启动服务" and "浏览器打不开管理端 (404)". Informational on
+        # runners without an interactive desktop; logs are always printed.
         continue-on-error: true
         shell: pwsh
         run: |
@@ -78,9 +78,16 @@ jobs:
             if (-not $ok) {
               Write-Warning 'Service health probe did not answer; agent.log follows:'
               Get-Content publish/data/agent.log -Tail 40 -ErrorAction SilentlyContinue
-              throw 'smoke test failed'
+              throw 'smoke test failed: service did not start'
             }
             Write-Output "SERVICE OK: $($health.service) v$($health.version)"
+
+            # The 404 regression: /api/health answers but GET / is empty.
+            $page = Invoke-WebRequest -Uri 'http://127.0.0.1:18420/' -TimeoutSec 5
+            if ($page.StatusCode -ne 200 -or $page.Content.Length -lt 200) {
+              throw "manager page not served: HTTP $($page.StatusCode) len=$($page.Content.Length)"
+            }
+            Write-Output "MANAGER PAGE OK: HTTP $($page.StatusCode) len=$($page.Content.Length)"
           } finally {
             if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
           }

@@ -2,6 +2,8 @@ using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using ClassConnector.Core.Hosting;
+using Microsoft.AspNetCore.Builder;
 using Xunit;
 
 namespace ClassConnector.Tests;
@@ -216,6 +218,44 @@ public class AgentServerIntegrationTests
 
         using var after = await client.GetFromJsonAsync<JsonDocument>("/api/status");
         Assert.True(after!.RootElement.GetProperty("autostart").GetProperty("enabled").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ManagerPage_IsServedFromWebRoot_Not404()
+    {
+        // Regression: WebRootPath was set but WebRootFileProvider was left
+        // pointing at the default (missing) wwwroot, so GET / returned 404
+        // while /api/health worked — browser could not open the manager.
+        var managerDir = Path.Combine(Path.GetTempPath(), "cc-manager-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(managerDir);
+        try
+        {
+            File.WriteAllText(Path.Combine(managerDir, "index.html"),
+                "<!doctype html><title>ClassConnector test page</title><h1>ok</h1>");
+            File.WriteAllText(Path.Combine(managerDir, "app.js"), "window.ok = true;");
+
+            using var agent = new TestAgent();
+            var port = TestAgent.FreePort();
+            await using var app = AgentServer.CreateApp(agent.Context, "127.0.0.1", port, managerDir);
+            await app.StartAsync();
+            try
+            {
+                using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+
+                var root = await client.GetAsync("/");
+                Assert.Equal(System.Net.HttpStatusCode.OK, root.StatusCode);
+                Assert.Contains("ClassConnector test page", await root.Content.ReadAsStringAsync());
+
+                var js = await client.GetAsync("/app.js");
+                Assert.Equal(System.Net.HttpStatusCode.OK, js.StatusCode);
+                Assert.Contains("window.ok", await js.Content.ReadAsStringAsync());
+            }
+            finally { await app.StopAsync(); }
+        }
+        finally
+        {
+            try { Directory.Delete(managerDir, true); } catch (Exception) { /* temp */ }
+        }
     }
 
     [Fact]
